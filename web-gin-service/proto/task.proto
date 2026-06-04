@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package recruit;
+
+option go_package = "web-gin-service/pb";
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  rpc TriggerAIMatch(TriggerAIMatchRequest) returns (CreateTaskResponse);
+  rpc TriggerResumeParse(TriggerResumeParseRequest) returns (CreateTaskResponse);
+  rpc RefreshDashboard(RefreshDashboardRequest) returns (CreateTaskResponse);
+  rpc GetResumeParseResult(GetResumeParseResultRequest) returns (GetResumeParseResultResponse);
+  rpc DeleteResumeParseResult(DeleteResumeParseResultRequest) returns (DeleteResumeParseResultResponse);
+}
+
+message CreateTaskRequest {
+  string task_type = 1;
+  uint64 business_id = 2;
+  uint64 user_id = 3;
+  string user_role = 4;
+  string params = 5;
+}
+
+message CreateTaskResponse {
+  uint64 task_id = 1;
+}
+
+message GetTaskRequest {
+  uint64 task_id = 1;
+}
+
+message GetTaskResponse {
+  uint64 id = 1;
+  string task_type = 2;
+  uint64 business_id = 3;
+  uint64 user_id = 4;
+  string user_role = 5;
+  string status = 6;
+  string params = 7;
+  string result = 8;
+  string error_message = 9;
+  int32 retry_count = 10;
+  int32 max_retries = 11;
+  string started_at = 12;
+  string completed_at = 13;
+  string created_at = 14;
+}
+
+message TriggerAIMatchRequest {
+  uint64 application_id = 1;
+  uint64 hr_id = 2;
+}
+
+message TriggerResumeParseRequest {
+  uint64 resume_id = 1;
+  uint64 candidate_id = 2;
+}
+
+message RefreshDashboardRequest {
+  uint64 hr_id = 1;
+}
+
+message GetResumeParseResultRequest {
+  uint64 resume_id = 1;
+}
+
+message GetResumeParseResultResponse {
+  uint64 id = 1;
+  uint64 resume_id = 2;
+  uint64 candidate_id = 3;
+  string education = 4;
+  string experience = 5;
+  string projects = 6;
+  string skills = 7;
+  string raw_result = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+
+message DeleteResumeParseResultRequest {
+  uint64 resume_id = 1;
+}
+
+message DeleteResumeParseResultResponse {}

@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package recruit;
+
+option go_package = "logic-grpc-service/pb";
+
+// CandidateService 处理候选人资料、简历、投递
+service CandidateService {
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc UploadResume(UploadResumeRequest) returns (UploadResumeResponse);
+  rpc GetResume(GetResumeRequest) returns (GetResumeResponse);
+  rpc DeleteResume(DeleteResumeRequest) returns (DeleteResumeResponse);
+  rpc ApplyJob(ApplyJobRequest) returns (ApplyJobResponse);
+  rpc ListMyApplications(ListMyApplicationsRequest) returns (ListMyApplicationsResponse);
+  rpc ListJobApplications(ListJobApplicationsRequest) returns (ListJobApplicationsResponse);
+  rpc GetApplicationDetail(GetApplicationDetailRequest) returns (GetApplicationDetailResponse);
+}
+
+// ---- 候选人档案 ----
+
+message ProfileInfo {
+  uint64 candidate_id = 1;
+  string name = 2;
+  string phone = 3;
+  string education = 4;
+  string university = 5;
+  string experience = 6;
+  string skills = 7;
+  bool is_complete = 8;
+}
+
+message GetProfileRequest {
+  uint64 candidate_id = 1;
+}
+
+message GetProfileResponse {
+  ProfileInfo profile = 1;
+}
+
+message UpdateProfileRequest {
+  uint64 candidate_id = 1;
+  string name = 2;
+  string phone = 3;
+  string education = 4;
+  string university = 5;
+  string experience = 6;
+  string skills = 7;
+}
+
+message UpdateProfileResponse {
+  bool is_complete = 1;
+}
+
+// ---- 简历 ----
+
+message ResumeInfo {
+  uint64 id = 1;
+  uint64 candidate_id = 2;
+  string file_name = 3;
+  string oss_key = 4;
+  int64 file_size = 5;
+  string file_type = 6;
+  string url = 7;
+  string created_at = 8;
+}
+
+message UploadResumeRequest {
+  uint64 candidate_id = 1;
+  string file_name = 2;
+  bytes file_data = 3;
+  int64 file_size = 4;
+  string file_type = 5;
+}
+
+message UploadResumeResponse {
+  uint64 id = 1;
+  string oss_key = 2;
+}
+
+message GetResumeRequest {
+  uint64 candidate_id = 1;
+}
+
+message GetResumeResponse {
+  ResumeInfo resume = 1;
+}
+
+message DeleteResumeRequest {
+  uint64 candidate_id = 1;
+}
+
+message DeleteResumeResponse {}
+
+// ---- 投递 ----
+
+message ApplyJobRequest {
+  uint64 candidate_id = 1;
+  uint64 job_id = 2;
+}
+
+message ApplyJobResponse {
+  uint64 id = 1;
+}
+
+message ApplicationInfo {
+  uint64 id = 1;
+  uint64 job_id = 2;
+  uint64 candidate_id = 3;
+  int32 status = 4;
+  string created_at = 5;
+  string job_title = 6;
+  string job_location = 7;
+  string job_salary = 8;
+  string candidate_name = 9;
+}
+
+message ListMyApplicationsRequest {
+  uint64 candidate_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListMyApplicationsResponse {
+  repeated ApplicationInfo applications = 1;
+  int64 total = 2;
+}
+
+message ListJobApplicationsRequest {
+  uint64 job_id = 1;
+  uint64 hr_id = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message ListJobApplicationsResponse {
+  repeated ApplicationInfo applications = 1;
+  int64 total = 2;
+}
+
+message GetApplicationDetailRequest {
+  uint64 application_id = 1;
+  uint64 hr_id = 2;
+}
+
+message GetApplicationDetailResponse {
+  ApplicationInfo application = 1;
+  ProfileInfo profile = 2;
+  ResumeInfo resume = 3;
+}

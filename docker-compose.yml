@@ -1,0 +1,153 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: recruit-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./logic-grpc-service/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - recruit-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: recruit-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - recruit-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  logic-grpc-service:
+    build:
+      context: ./logic-grpc-service
+      dockerfile: Dockerfile
+    container_name: recruit-logic
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - GRPC_PORT=${GRPC_PORT:-9090}
+      - OSS_ENDPOINT=${OSS_ENDPOINT}
+      - OSS_ACCESS_KEY_ID=${OSS_ACCESS_KEY_ID}
+      - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET}
+      - OSS_BUCKET_NAME=${OSS_BUCKET_NAME}
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_BASE_URL=${AI_BASE_URL}
+      - AI_MODEL=${AI_MODEL}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    volumes:
+      - ./deploy/logic-config.yaml.template:/app/config.yaml.template
+      - ./deploy/entrypoint.sh:/app/entrypoint.sh
+    entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
+    command: ["./logic-grpc-service"]
+    networks:
+      - recruit-net
+
+  web-gin-service:
+    build:
+      context: ./web-gin-service
+      dockerfile: Dockerfile
+    container_name: recruit-web
+    restart: unless-stopped
+    depends_on:
+      - logic-grpc-service
+    environment:
+      - WEB_PORT=${WEB_PORT:-8080}
+      - LOGIC_GRPC_ADDR=${LOGIC_GRPC_ADDR:-logic-grpc-service:9090}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRE=${JWT_EXPIRE:-24}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
+    volumes:
+      - ./deploy/web-config.yaml.template:/app/config.yaml.template
+      - ./deploy/entrypoint.sh:/app/entrypoint.sh
+    entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
+    command: ["./web-gin-service"]
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    networks:
+      - recruit-net
+
+  hr-frontend:
+    build:
+      context: ./hr-frontend
+      dockerfile: Dockerfile
+    container_name: recruit-hr-frontend
+    restart: unless-stopped
+    depends_on:
+      - web-gin-service
+    ports:
+      - "${HR_FRONTEND_PORT:-3001}:80"
+    networks:
+      - recruit-net
+
+  user-frontend:
+    build:
+      context: ./user-frontend
+      dockerfile: Dockerfile
+    container_name: recruit-user-frontend
+    restart: unless-stopped
+    depends_on:
+      - web-gin-service
+    ports:
+      - "${USER_FRONTEND_PORT:-3002}:80"
+    networks:
+      - recruit-net
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: recruit-nginx
+    restart: unless-stopped
+    depends_on:
+      - hr-frontend
+      - user-frontend
+      - web-gin-service
+    ports:
+      - "${NGINX_PORT:-80}:80"
+      - "443:443"
+    volumes:
+      - ./deploy/ssl:/etc/nginx/ssl:ro
+    networks:
+      - recruit-net
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  recruit-net:
+    driver: bridge

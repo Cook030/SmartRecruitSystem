@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package recruit;
+
+option go_package = "logic-grpc-service/pb";
+
+// JobService 处理岗位的增删改查。
+service JobService {
+  rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
+  rpc UpdateJob(UpdateJobRequest) returns (UpdateJobResponse);
+  rpc OfflineJob(OfflineJobRequest) returns (OfflineJobResponse);
+  rpc ListHrJobs(ListHrJobsRequest) returns (ListHrJobsResponse);
+  rpc ListPublicJobs(ListPublicJobsRequest) returns (ListPublicJobsResponse);
+  rpc GetJob(GetJobRequest) returns (GetJobResponse);
+}
+
+// JobInfo 是岗位详情的统一返回结构。
+message JobInfo {
+  uint64 id = 1;
+  uint64 hr_id = 2;
+  string title = 3;
+  string description = 4;
+  string requirement = 5;
+  string salary = 6;
+  string location = 7;
+  int32 status = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+
+// CreateJobRequest 创建岗位所需参数。
+message CreateJobRequest {
+  uint64 hr_id = 1;
+  string title = 2;
+  string description = 3;
+  string requirement = 4;
+  string salary = 5;
+  string location = 6;
+}
+
+message CreateJobResponse {
+  uint64 id = 1;
+}
+
+message UpdateJobRequest {
+  uint64 id = 1;
+  uint64 hr_id = 2;
+  string title = 3;
+  string description = 4;
+  string requirement = 5;
+  string salary = 6;
+  string location = 7;
+}
+
+message UpdateJobResponse {}
+
+message OfflineJobRequest {
+  uint64 id = 1;
+  uint64 hr_id = 2;
+}
+
+message OfflineJobResponse {}
+
+message ListHrJobsRequest {
+  uint64 hr_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListHrJobsResponse {
+  repeated JobInfo jobs = 1;
+  int64 total = 2;
+}
+
+message ListPublicJobsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListPublicJobsResponse {
+  repeated JobInfo jobs = 1;
+  int64 total = 2;
+}
+
+message GetJobRequest {
+  uint64 id = 1;
+}
+
+message GetJobResponse {
+  JobInfo job = 1;
+}
