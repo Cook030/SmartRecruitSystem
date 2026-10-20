@@ -8,6 +8,9 @@ option go_package = "logic-grpc-service/pb";
 service ChatService {
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
   rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse);
+  rpc CreateConversation(CreateConversationRequest) returns (ChatConversationInfo);
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc DeleteConversation(DeleteConversationRequest) returns (DeleteConversationResponse);
 }
 
 message ChatMessageInfo {
@@ -16,11 +19,14 @@ message ChatMessageInfo {
   string role = 3;
   string content = 4;
   string created_at = 5;
+  uint64 conversation_id = 6;
 }
 
 message SendMessageRequest {
   uint64 hr_id = 1;
   string content = 2;
+  uint64 conversation_id = 3;
+  string request_id = 4;
 }
 
 message SendMessageResponse {
@@ -29,8 +35,41 @@ message SendMessageResponse {
 
 message GetChatHistoryRequest {
   uint64 hr_id = 1;
+  uint64 conversation_id = 2;
+  uint64 before_id = 3;
+  int32 limit = 4;
 }
 
 message GetChatHistoryResponse {
   repeated ChatMessageInfo messages = 1;
+  uint64 next_before_id = 2;
 }
+
+message ChatConversationInfo {
+  uint64 id = 1;
+  string title = 2;
+  string created_at = 3;
+  string updated_at = 4;
+}
+
+message CreateConversationRequest {
+  uint64 hr_id = 1;
+  string title = 2;
+}
+
+message ListConversationsRequest {
+  uint64 hr_id = 1;
+  uint64 before_id = 2;
+}
+
+message ListConversationsResponse {
+  repeated ChatConversationInfo conversations = 1;
+  uint64 next_before_id = 2;
+}
+
+message DeleteConversationRequest {
+  uint64 hr_id = 1;
+  uint64 conversation_id = 2;
+}
+
+message DeleteConversationResponse {}

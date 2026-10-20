@@ -112,15 +112,47 @@ CREATE TABLE IF NOT EXISTS `resumes` (
 -- -----------------------------------------------------------
 -- 7. AI 聊天记录表
 -- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `chat_conversations` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `hr_id` BIGINT UNSIGNED NOT NULL,
+  `title` VARCHAR(80) NOT NULL DEFAULT '新对话',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_chat_conversation_hr` (`hr_id`, `id`),
+  CONSTRAINT `fk_chat_conversation_hr` FOREIGN KEY (`hr_id`) REFERENCES `hr_users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `chat_requests` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `hr_id` BIGINT UNSIGNED NOT NULL,
+  `conversation_id` BIGINT UNSIGNED NOT NULL,
+  `request_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `content` TEXT NOT NULL,
+  `reply` LONGTEXT NOT NULL,
+  `status` VARCHAR(20) NOT NULL,
+  `attempt` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `lease_until` DATETIME(6) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_chat_request` (`hr_id`, `request_id`),
+  KEY `idx_chat_request_active` (`conversation_id`, `status`, `lease_until`),
+  CONSTRAINT `fk_chat_request_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversations` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE IF NOT EXISTS `chat_messages` (
   `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `hr_id`      BIGINT UNSIGNED NOT NULL,
+  `conversation_id` BIGINT UNSIGNED NOT NULL,
   `role`       VARCHAR(20)     NOT NULL COMMENT 'user=HR提问, assistant=AI回复',
   `content`    TEXT            NOT NULL,
   `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_hr_id` (`hr_id`),
+  KEY `idx_chat_conversation_message` (`conversation_id`, `id`),
+  CONSTRAINT `fk_chat_message_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversations` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_chat_hr` FOREIGN KEY (`hr_id`) REFERENCES `hr_users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

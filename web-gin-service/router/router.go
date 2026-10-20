@@ -52,6 +52,9 @@ func SetupRouter(authClient pb.AuthServiceClient, jobClient pb.JobServiceClient,
 		hr.POST("/applications/:id/match", taskHandler.TriggerAIMatch)
 		hr.POST("/chat", chatHandler.SendMessage)
 		hr.GET("/chat/history", chatHandler.GetChatHistory)
+		hr.POST("/chat/conversations", chatHandler.CreateConversation)
+		hr.GET("/chat/conversations", chatHandler.ListConversations)
+		hr.DELETE("/chat/conversations/:id", chatHandler.DeleteConversation)
 	}
 
 	candidate := api.Group("/candidate")
