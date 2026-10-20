@@ -50,10 +50,16 @@ export const jobApi = {
 };
 
 export const chatApi = {
-  send: (content: string) =>
-    api.post('/hr/chat', { content }),
-  history: () =>
-    api.get('/hr/chat/history'),
+  send: (conversationId: number, content: string, requestId: string, signal?: AbortSignal) =>
+    api.post('/hr/chat', { conversationId, content, requestId }, { timeout: 100000, signal }),
+  history: (conversationId: number, beforeId?: number, signal?: AbortSignal) =>
+    api.get('/hr/chat/history', { params: { conversationId, beforeId }, signal }),
+  conversations: (beforeId?: number, signal?: AbortSignal) =>
+    api.get('/hr/chat/conversations', { params: { beforeId }, signal }),
+  createConversation: (title: string) =>
+    api.post('/hr/chat/conversations', { title }),
+  deleteConversation: (id: number) =>
+    api.delete(`/hr/chat/conversations/${id}`),
 };
 
 export const dashboardApi = {
