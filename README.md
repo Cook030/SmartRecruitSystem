@@ -164,6 +164,8 @@ protoc --proto_path=proto \
 
 ## 部署说明
 
+AI 多轮会话升级需对旧数据库执行一次 `logic-grpc-service/sql/migrations/20261020_chat_conversations.sql`，并同步升级 Logic、Web 和 HR 前端；已迁移的数据库无需重复执行。
+
 1. 确保 MySQL、OSS、DeepSeek API 可用
 2. 复制 `.env.example` 为 `.env` 并填写配置
 3. 按顺序启动 Logic → Web → 前端

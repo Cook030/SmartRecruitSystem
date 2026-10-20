@@ -217,33 +217,45 @@
 - **POST** `/api/hr/chat`
 - **请求体**：
 ```json
-{ "content": "目前有多少人投递了岗位？" }
+{ "conversationId": 1, "requestId": "71ad4a1c-2be1-49f8-ace0-a73082dbe860", "content": "目前有多少人投递了岗位？" }
 ```
 - **返回**：
 ```json
 {
   "code": 0, "message": "success",
-  "data": { "reply": "目前系统共有 15 位候选人提交了岗位投递..." }
+  "data": { "reply": "你负责的岗位共有 15 位候选人提交了投递..." }
 }
 ```
 
+- `conversationId` 必填，且必须归当前登录 HR 所有；`requestId` 为 16–64 位 ASCII 字母、数字、`_` 或 `-`，推荐 UUID。
+- 传输失败时使用相同 `requestId` 和原始 `content` 重试。已完成请求返回保存的回复；生成中返回 409；同一 ID 改问题或会话也返回 409。
+- 本轮生成最长 90 秒。生成完成后回复、消息对及请求状态原子提交；失败不进入模型历史。
+
 ### 13. 获取聊天历史
 
-- **GET** `/api/hr/chat/history`
+- **GET** `/api/hr/chat/history?conversationId=1&limit=40&beforeId=100`
+- `limit` 默认 40，最大 100。首次省略 `beforeId`；返回最近一页，页内按消息 ID 升序。`nextBeforeId` 为 0 表示没有更早记录，否则将它传作下一页的 `beforeId`。
 - **返回**：
 ```json
 {
   "code": 0, "message": "success",
   "data": {
+    "nextBeforeId": 0,
     "messages": [
-      { "id": 1, "hr_id": 1, "role": "user", "content": "...", "created_at": "..." },
-      { "id": 2, "hr_id": 1, "role": "assistant", "content": "...", "created_at": "..." }
+      { "id": 1, "hr_id": 1, "conversation_id": 1, "role": "user", "content": "...", "created_at": "..." },
+      { "id": 2, "hr_id": 1, "conversation_id": 1, "role": "assistant", "content": "...", "created_at": "..." }
     ]
   }
 }
 ```
 
 ---
+
+会话管理（均需 HR JWT，且仅能操作自己的会话）：
+
+- `POST /api/hr/chat/conversations`：JSON `{ "title": "Go 岗位筛选" }`，名称可省略，最长 80 字。
+- `GET /api/hr/chat/conversations?beforeId=100`：每页最多 50 条，按 ID 降序，返回 `conversations` 和 `nextBeforeId`。
+- `DELETE /api/hr/chat/conversations/:id`：删除会话及其消息和请求记录；生成中返回 409。
 
 ## 三、候选人接口（需 JWT，role=candidate）
 
