@@ -1,3 +1,3 @@
 #!/bin/sh
-envsubst < /app/config.yaml.template > /app/config.yaml
+# Services read their environment directly; do not render secrets into YAML.
 exec "$@"

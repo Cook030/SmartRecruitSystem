@@ -17,9 +17,9 @@ go.work.sum
 
 # Environment files
 .env
-.env.local
-.env.*.local
+.env.*
 *.env
+!.env.example
 
 # Config files with secrets
 config.yaml

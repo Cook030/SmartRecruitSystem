@@ -27,7 +27,16 @@ services:
     image: redis:7-alpine
     container_name: recruit-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:-}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        if [ -n "$$REDISCLI_AUTH" ]; then
+          exec redis-server --appendonly yes --requirepass "$$REDISCLI_AUTH"
+        fi
+        exec redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
@@ -52,7 +61,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_HOST=mysql
       - MYSQL_PORT=${MYSQL_PORT:-3306}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
@@ -65,11 +74,11 @@ services:
       - AI_API_KEY=${AI_API_KEY}
       - AI_BASE_URL=${AI_BASE_URL}
       - AI_MODEL=${AI_MODEL}
-      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=${REDIS_DB:-0}
     volumes:
-      - ./deploy/logic-config.yaml.template:/app/config.yaml.template
       - ./deploy/entrypoint.sh:/app/entrypoint.sh
     entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
     command: ["./logic-grpc-service"]
@@ -86,12 +95,11 @@ services:
       - logic-grpc-service
     environment:
       - WEB_PORT=${WEB_PORT:-8080}
-      - LOGIC_GRPC_ADDR=${LOGIC_GRPC_ADDR:-logic-grpc-service:9090}
+      - LOGIC_GRPC_ADDR=logic-grpc-service:${GRPC_PORT:-9090}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRE=${JWT_EXPIRE:-24}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
     volumes:
-      - ./deploy/web-config.yaml.template:/app/config.yaml.template
       - ./deploy/entrypoint.sh:/app/entrypoint.sh
     entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
     command: ["./web-gin-service"]

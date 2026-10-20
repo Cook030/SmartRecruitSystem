@@ -52,54 +52,23 @@ HR 前端 (:3001)     候选人前端 (:3002)
 mysql -u root -p < logic-grpc-service/sql/init.sql
 ```
 
-### Logic 服务配置
+### 环境变量配置
 
-编辑 `logic-grpc-service/config.yaml`：
+在项目根目录复制示例并填写真实配置：
 
-```yaml
-mysql:
-  host: "127.0.0.1"
-  port: 3306
-  user: "root"
-  password: "你的MySQL密码"
-  database: "smart_recruit"
-
-grpc:
-  port: 50051
-
-oss:
-  endpoint: "oss-cn-beijing.aliyuncs.com"
-  access_key_id: "你的AccessKeyID"
-  access_key_secret: "你的AccessKeySecret"
-  bucket_name: "你的Bucket名称"
-
-ai:
-  api_key: "你的DeepSeek API Key"
-  base_url: "https://api.deepseek.com"
-  model: "deepseek-V4-Flash"
+```bash
+cp .env.example .env
 ```
 
-### Web 服务配置
+MySQL/Redis 密码、OSS AccessKey、AI API Key 和 JWT 密钥均填入 `.env`。两个 Go 服务启动时自动读取根目录 `.env`，操作系统环境变量优先；原有 `config.yaml` 可保留非敏感配置，也可以省略。`.env` 不提交，`.env.example` 只保留占位值。
 
-编辑 `web-gin-service/config.yaml`：
-
-```yaml
-server:
-  port: 8080
-
-grpc:
-  logic_addr: "127.0.0.1:50051"
-
-jwt:
-  secret: "你的JWT密钥"
-  expire: 24
-```
+Docker Compose 也读取根目录 `.env`；首次初始化 MySQL 时使用非 root 的 `MYSQL_USER`，分别填写 `MYSQL_PASSWORD` 和 `MYSQL_ROOT_PASSWORD`。容器内的 MySQL、Redis 和 gRPC 地址由 Compose 指向对应服务。
 
 ### OSS 配置
 
 1. 登录阿里云控制台创建 OSS Bucket
 2. Bucket 权限设置为**私有**（关闭匿名访问和公开读）
-3. 将 Endpoint、AccessKey、BucketName 填入 `logic-grpc-service/config.yaml`
+3. 将 Endpoint、AccessKey、BucketName 填入根目录 `.env` 的对应 OSS 变量
 
 ## 服务启动顺序
 
@@ -196,9 +165,9 @@ protoc --proto_path=proto \
 ## 部署说明
 
 1. 确保 MySQL、OSS、DeepSeek API 可用
-2. 配置各服务的 `config.yaml`
+2. 复制 `.env.example` 为 `.env` 并填写配置
 3. 按顺序启动 Logic → Web → 前端
-4. 敏感配置不提交到代码仓库（config.yaml 已在 .gitignore 中）
+4. `.env` 和本地 `config.yaml` 已加入 `.gitignore`，只提交脱敏的 `.env.example`
 
 ## 目录结构
 
