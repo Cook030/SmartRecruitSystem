@@ -209,10 +209,10 @@ function ResizableWindow({ children, onClose }: { children: React.ReactNode; onC
               transition: 'all 0.2s',
             }}
             onMouseOver={(e) => {
-              e.currentTarget.background = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.background = 'rgba(255, 255, 255, 0.2)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
             }}
           >
             ×
@@ -250,14 +250,6 @@ function ResizableWindow({ children, onClose }: { children: React.ReactNode; onC
         />
       </div>
 
-      {/* 全局鼠标事件监听 */}
-      {isResizing && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1001 }}
-          onMouseMove={handleResizeMove}
-          onMouseUp={handleResizeEnd}
-        />
-      )}
     </div>
   );
 }

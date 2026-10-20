@@ -93,12 +93,12 @@ export default function JobList() {
                       transition: 'all 0.2s'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.background = '#bae7ff';
-                      e.currentTarget.borderColor = '#69b1ff';
+                      e.currentTarget.style.background = '#bae7ff';
+                      e.currentTarget.style.borderColor = '#69b1ff';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.background = '#e6f4ff';
-                      e.currentTarget.borderColor = '#91caff';
+                      e.currentTarget.style.background = '#e6f4ff';
+                      e.currentTarget.style.borderColor = '#91caff';
                     }}>
                     编辑
                   </button>
@@ -117,12 +117,12 @@ export default function JobList() {
                         transition: 'all 0.2s'
                       }}
                       onMouseOver={(e) => {
-                        e.currentTarget.background = '#ffccc7';
-                        e.currentTarget.borderColor = '#ff7875';
+                        e.currentTarget.style.background = '#ffccc7';
+                        e.currentTarget.style.borderColor = '#ff7875';
                       }}
                       onMouseOut={(e) => {
-                        e.currentTarget.background = '#fff1f0';
-                        e.currentTarget.borderColor = '#ffccc7';
+                        e.currentTarget.style.background = '#fff1f0';
+                        e.currentTarget.style.borderColor = '#ffccc7';
                       }}>
                       下架
                     </button>
@@ -140,12 +140,12 @@ export default function JobList() {
                       transition: 'all 0.2s'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.background = '#d9f7be';
-                      e.currentTarget.borderColor = '#95de64';
+                      e.currentTarget.style.background = '#d9f7be';
+                      e.currentTarget.style.borderColor = '#95de64';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.background = '#f6ffed';
-                      e.currentTarget.borderColor = '#b7eb8f';
+                      e.currentTarget.style.background = '#f6ffed';
+                      e.currentTarget.style.borderColor = '#b7eb8f';
                     }}>
                     查看投递
                   </button>
