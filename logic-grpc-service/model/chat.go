@@ -8,6 +8,7 @@ type ChatMessage struct {
 	ConversationID uint64    `gorm:"index;not null" json:"conversationId"`
 	Role           string    `gorm:"type:varchar(20);not null" json:"role"`
 	Content        string    `gorm:"type:text;not null" json:"content"`
+	ContextNotes   string    `gorm:"type:text" json:"-"`
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
 }
@@ -15,11 +16,14 @@ type ChatMessage struct {
 func (ChatMessage) TableName() string { return "chat_messages" }
 
 type ChatConversation struct {
-	ID        uint64 `gorm:"primaryKey;autoIncrement"`
-	HrID      uint64 `gorm:"index;not null"`
-	Title     string `gorm:"size:80;not null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID                    uint64 `gorm:"primaryKey;autoIncrement"`
+	HrID                  uint64 `gorm:"index;not null"`
+	Title                 string `gorm:"size:80;not null"`
+	ContextSummary        string `gorm:"type:text"`
+	SummaryUntilMessageID uint64 `gorm:"not null;default:0"`
+	SummaryVersion        uint64 `gorm:"not null;default:0"`
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 func (ChatConversation) TableName() string { return "chat_conversations" }
