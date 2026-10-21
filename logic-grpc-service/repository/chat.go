@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"logic-grpc-service/chatcontext"
 	"logic-grpc-service/model"
 
 	"gorm.io/gorm"
@@ -92,7 +93,7 @@ func (r *Repository) BeginChatRequest(ctx context.Context, hrID, conversationID 
 
 // Reply, complete message pair and request state commit atomically. An expired
 // worker cannot commit after a retry or a newer turn has taken over.
-func (r *Repository) CompleteChatRequest(ctx context.Context, request *model.ChatRequest, reply string) error {
+func (r *Repository) CompleteChatRequest(ctx context.Context, request *model.ChatRequest, reply, notes string, update *chatcontext.State) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -109,12 +110,32 @@ func (r *Repository) CompleteChatRequest(ctx context.Context, request *model.Cha
 		}
 		messages := []model.ChatMessage{
 			{HrID: request.HrID, ConversationID: request.ConversationID, Role: "user", Content: request.Content},
-			{HrID: request.HrID, ConversationID: request.ConversationID, Role: "assistant", Content: reply},
+			{HrID: request.HrID, ConversationID: request.ConversationID, Role: "assistant", Content: reply, ContextNotes: notes},
 		}
 		if err := tx.Create(&messages).Error; err != nil {
 			return err
 		}
-		return tx.Model(&model.ChatConversation{}).Where("id = ?", request.ConversationID).Update("updated_at", time.Now()).Error
+		q := tx.Model(&model.ChatConversation{}).Where("id = ? AND hr_id = ?", request.ConversationID, request.HrID)
+		values := map[string]any{"updated_at": time.Now()}
+		if update != nil {
+			if update.Version == 0 || update.Handoff == nil {
+				return ErrChatConflict
+			}
+			raw := update.Handoff.JSON()
+			if _, err := chatcontext.ParseHandoff(raw); err != nil {
+				return err
+			}
+			q = q.Where("summary_version = ? AND summary_until_message_id < ?", update.Version-1, update.UntilID)
+			values["context_summary"], values["summary_until_message_id"], values["summary_version"] = raw, update.UntilID, update.Version
+		}
+		result = q.Updates(values)
+		if result.Error != nil {
+			return result.Error
+		}
+		if update != nil && result.RowsAffected != 1 {
+			return ErrChatConflict
+		}
+		return nil
 	})
 }
 

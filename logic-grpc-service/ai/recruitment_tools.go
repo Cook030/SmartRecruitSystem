@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -79,8 +80,16 @@ func toolError(code, message string) *compose.ToolOutput {
 }
 
 type queryBudget struct {
-	calls atomic.Int32
-	bytes atomic.Int64
+	calls    atomic.Int32
+	bytes    atomic.Int64
+	mu       sync.Mutex
+	failures []string
+}
+
+func (b *queryBudget) contextNotes() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return strings.Join(b.failures, "\n")
 }
 
 // SQL errors never enter the model context. Cancellation and budget failures
@@ -91,6 +100,19 @@ func (b *queryBudget) middleware(requestID string, hrID uint64) compose.Invokabl
 			started := time.Now()
 			code := "ok"
 			defer func() {
+				if code != "ok" {
+					b.mu.Lock()
+					if len(b.failures) < maxToolCalls {
+						// Only controlled tool names and codes; never persist SQL errors or raw arguments.
+						note := input.Name + ": " + code
+						if output != nil && len(output.Result) <= 2048 {
+							// Recoverable failures have already been sanitized into toolError output.
+							note += " " + output.Result
+						}
+						b.failures = append(b.failures, note)
+					}
+					b.mu.Unlock()
+				}
 				size := 0
 				rows := 0
 				if output != nil {

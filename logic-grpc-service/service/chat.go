@@ -15,7 +15,6 @@ import (
 	"logic-grpc-service/pb"
 	"logic-grpc-service/repository"
 
-	"github.com/cloudwego/eino/schema"
 	"github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -89,23 +88,11 @@ func (s *ChatService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 			slog.ErrorContext(cleanup, "failed to release chat request", "request_id", req.RequestId, "error", err)
 		}
 	}()
-	historyMsgs, err := s.repo.GetChatHistory(ctx, req.HrId, req.ConversationId, 0, 40)
+	input, err := s.repo.LoadChatContext(ctx, req.HrId, req.ConversationId)
 	if err != nil {
 		return nil, chatError(err)
 	}
-	var history []*schema.Message
-	for _, msg := range historyMsgs {
-		role := schema.User
-		if msg.Role == "assistant" {
-			role = schema.Assistant
-		}
-		history = append(history, &schema.Message{
-			Role:    role,
-			Content: msg.Content,
-		})
-	}
-
-	reply, err := ai.Chat(ctx, s.cfg, s.repo, req.HrId, history, req.Content)
+	result, err := ai.Chat(ctx, s.cfg, s.repo, req.HrId, input, req.Content)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, status.FromContextError(ctx.Err()).Err()
@@ -117,12 +104,12 @@ func (s *ChatService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 	// Retrying the same request ID can then recover it without another model call.
 	commitCtx, stop := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 	defer stop()
-	if err := s.repo.CompleteChatRequest(commitCtx, request, reply); err != nil {
+	if err := s.repo.CompleteChatRequest(commitCtx, request, result.Reply, result.ContextNotes, result.ContextUpdate); err != nil {
 		return nil, chatError(err)
 	}
 	completed = true
 
-	return &pb.SendMessageResponse{Reply: reply}, nil
+	return &pb.SendMessageResponse{Reply: result.Reply}, nil
 }
 
 func (s *ChatService) GetChatHistory(ctx context.Context, req *pb.GetChatHistoryRequest) (*pb.GetChatHistoryResponse, error) {
