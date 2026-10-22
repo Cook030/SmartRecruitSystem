@@ -14,6 +14,7 @@ import (
 	"logic-grpc-service/model"
 	"logic-grpc-service/pb"
 	"logic-grpc-service/repository"
+	"logic-grpc-service/telemetry"
 
 	"github.com/go-sql-driver/mysql"
 	"google.golang.org/grpc/codes"
@@ -53,6 +54,9 @@ func NewChatService(repo *repository.Repository, cfg *config.Config) *ChatServic
 }
 
 func (s *ChatService) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (_ *pb.SendMessageResponse, retErr error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.HrId == 0 {
 		return nil, status.Error(codes.Unauthenticated, "HR identity is required")
 	}
@@ -75,6 +79,7 @@ func (s *ChatService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 	}
 	if request.Status == "completed" {
 		replayed = true
+		telemetry.Event(ctx, "chat.replayed")
 		return &pb.SendMessageResponse{Reply: request.Reply}, nil
 	}
 	completed := false
@@ -119,6 +124,9 @@ func (s *ChatService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 }
 
 func (s *ChatService) GetChatHistory(ctx context.Context, req *pb.GetChatHistoryRequest) (*pb.GetChatHistoryResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.HrId == 0 {
 		return nil, status.Error(codes.Unauthenticated, "HR identity is required")
 	}
@@ -158,6 +166,9 @@ func conversationInfo(c model.ChatConversation) *pb.ChatConversationInfo {
 }
 
 func (s *ChatService) CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) (*pb.ChatConversationInfo, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.HrId == 0 {
 		return nil, status.Error(codes.Unauthenticated, "HR identity is required")
 	}
@@ -176,6 +187,9 @@ func (s *ChatService) CreateConversation(ctx context.Context, req *pb.CreateConv
 }
 
 func (s *ChatService) ListConversations(ctx context.Context, req *pb.ListConversationsRequest) (*pb.ListConversationsResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.HrId == 0 {
 		return nil, status.Error(codes.Unauthenticated, "HR identity is required")
 	}
@@ -195,6 +209,9 @@ func (s *ChatService) ListConversations(ctx context.Context, req *pb.ListConvers
 }
 
 func (s *ChatService) DeleteConversation(ctx context.Context, req *pb.DeleteConversationRequest) (*pb.DeleteConversationResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.HrId == 0 {
 		return nil, status.Error(codes.Unauthenticated, "HR identity is required")
 	}

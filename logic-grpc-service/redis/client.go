@@ -25,6 +25,8 @@ func NewClient(cfg config.RedisConfig) *Client {
 		DB:       cfg.DB,
 	})
 
+	rdb.AddHook(telemetryHook{})
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

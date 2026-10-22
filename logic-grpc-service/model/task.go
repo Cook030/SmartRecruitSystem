@@ -3,17 +3,19 @@ package model
 import "time"
 
 type AsyncTask struct {
-	ID           uint64    `gorm:"primaryKey;autoIncrement" json:"id"`
-	TaskType     string    `gorm:"type:varchar(64);not null" json:"taskType"`
-	BusinessID   uint64    `gorm:"not null;default:0" json:"businessId"`
-	UserID       uint64    `gorm:"not null;default:0" json:"userId"`
-	UserRole     string    `gorm:"type:varchar(20);not null;default:''" json:"userRole"`
-	Status       string    `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
-	Params       string    `gorm:"type:text" json:"params"`
-	Result       string    `gorm:"type:text" json:"result"`
-	ErrorMessage string    `gorm:"type:text" json:"errorMessage"`
-	RetryCount   int       `gorm:"not null;default:0" json:"retryCount"`
-	MaxRetries   int       `gorm:"not null;default:3" json:"maxRetries"`
+	ID           uint64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	TaskType     string     `gorm:"type:varchar(64);not null" json:"taskType"`
+	BusinessID   uint64     `gorm:"not null;default:0" json:"businessId"`
+	UserID       uint64     `gorm:"not null;default:0" json:"userId"`
+	UserRole     string     `gorm:"type:varchar(20);not null;default:''" json:"userRole"`
+	Status       string     `gorm:"type:varchar(20);not null;default:'pending'" json:"status"`
+	Params       string     `gorm:"type:text" json:"params"`
+	TraceParent  string     `gorm:"type:varchar(128);not null;default:''" json:"-"`
+	TraceState   string     `gorm:"type:varchar(512);not null;default:''" json:"-"`
+	Result       string     `gorm:"type:text" json:"result"`
+	ErrorMessage string     `gorm:"type:text" json:"errorMessage"`
+	RetryCount   int        `gorm:"not null;default:0" json:"retryCount"`
+	MaxRetries   int        `gorm:"not null;default:3" json:"maxRetries"`
 	StartedAt    *time.Time `json:"startedAt"`
 	CompletedAt  *time.Time `json:"completedAt"`
 	CreatedAt    time.Time  `json:"createdAt"`

@@ -2,6 +2,8 @@ package oss
 
 import (
 	"bytes"
+	"context"
+	"logic-grpc-service/telemetry"
 	"time"
 
 	"logic-grpc-service/config"
@@ -17,15 +19,19 @@ func getBucket(cfg *config.Config) (*oss.Bucket, error) {
 	return client.Bucket(cfg.OSS.BucketName)
 }
 
-func UploadFile(cfg *config.Config, objectKey string, data []byte) error {
+func UploadFile(ctx context.Context, cfg *config.Config, objectKey string, data []byte) (retErr error) {
+	ctx, end := telemetry.Start(ctx, "oss.uploadfile")
+	defer func() { end(telemetry.Outcome(retErr)) }()
 	bucket, err := getBucket(cfg)
 	if err != nil {
 		return err
 	}
-	return bucket.PutObject(objectKey, bytes.NewReader(data))
+	return bucket.PutObject(objectKey, bytes.NewReader(data), oss.WithContext(ctx))
 }
 
-func GetSignedURL(cfg *config.Config, objectKey string) (string, error) {
+func GetSignedURL(ctx context.Context, cfg *config.Config, objectKey string) (_ string, retErr error) {
+	ctx, end := telemetry.Start(ctx, "oss.getsignedurl")
+	defer func() { end(telemetry.Outcome(retErr)) }()
 	bucket, err := getBucket(cfg)
 	if err != nil {
 		return "", err
@@ -33,20 +39,24 @@ func GetSignedURL(cfg *config.Config, objectKey string) (string, error) {
 	return bucket.SignURL(objectKey, oss.HTTPGet, int64(time.Hour.Seconds()*2))
 }
 
-func DeleteFile(cfg *config.Config, objectKey string) error {
+func DeleteFile(ctx context.Context, cfg *config.Config, objectKey string) (retErr error) {
+	ctx, end := telemetry.Start(ctx, "oss.deletefile")
+	defer func() { end(telemetry.Outcome(retErr)) }()
 	bucket, err := getBucket(cfg)
 	if err != nil {
 		return err
 	}
-	return bucket.DeleteObject(objectKey)
+	return bucket.DeleteObject(objectKey, oss.WithContext(ctx))
 }
 
-func DownloadFile(cfg *config.Config, objectKey string) ([]byte, error) {
+func DownloadFile(ctx context.Context, cfg *config.Config, objectKey string) (_ []byte, retErr error) {
+	ctx, end := telemetry.Start(ctx, "oss.downloadfile")
+	defer func() { end(telemetry.Outcome(retErr)) }()
 	bucket, err := getBucket(cfg)
 	if err != nil {
 		return nil, err
 	}
-	body, err := bucket.GetObject(objectKey)
+	body, err := bucket.GetObject(objectKey, oss.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}

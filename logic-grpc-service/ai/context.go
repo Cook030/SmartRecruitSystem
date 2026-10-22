@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"logic-grpc-service/chatcontext"
+	"logic-grpc-service/telemetry"
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
@@ -24,7 +25,9 @@ safe_stopping_point：安全停点，说明工作停在哪里、继续所需的�
 无依据的部分写“未知”，确定没有事项写“无”，不得编造事实、完成状态、ID或授权。
 只压缩重复表述，不省略上述六项。输出JSON编码后最多6144个UTF-8字节，建议正文总计不超过1200个汉字；不要Markdown或额外说明。`
 
-func compactHandoff(ctx context.Context, m model.BaseChatModel, previous *chatcontext.Handoff, messages []chatcontext.Message) (*chatcontext.Handoff, error) {
+func compactHandoff(ctx context.Context, m model.BaseChatModel, previous *chatcontext.Handoff, messages []chatcontext.Message) (_ *chatcontext.Handoff, retErr error) {
+	ctx, end := telemetry.Start(ctx, "context.compact")
+	defer func() { end(modelOutcome(retErr)) }()
 	payload, err := json.Marshal(struct {
 		Previous *chatcontext.Handoff  `json:"previous_handoff"`
 		Messages []chatcontext.Message `json:"new_history"`

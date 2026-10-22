@@ -12,7 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"logic-grpc-service/recruitment"
+	"logic-grpc-service/telemetry"
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/components/tool/utils"
@@ -97,9 +99,15 @@ func (b *queryBudget) contextNotes() string {
 func (b *queryBudget) middleware(requestID string, hrID uint64) compose.InvokableToolMiddleware {
 	return func(next compose.InvokableToolEndpoint) compose.InvokableToolEndpoint {
 		return func(ctx context.Context, input *compose.ToolInput) (output *compose.ToolOutput, err error) {
+			ctx, end := telemetry.Start(ctx, "ai.tool", attribute.String("tool", input.Name))
 			started := time.Now()
 			code := "ok"
 			defer func() {
+				outcome := code
+				if code == "ok" {
+					outcome = "success"
+				}
+				end(outcome)
 				if code != "ok" {
 					b.mu.Lock()
 					if len(b.failures) < maxToolCalls {

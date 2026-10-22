@@ -171,6 +171,8 @@ CREATE TABLE IF NOT EXISTS `async_tasks` (
   `user_role`      VARCHAR(20)     NOT NULL DEFAULT '',
   `status`         VARCHAR(20)     NOT NULL DEFAULT 'pending' COMMENT 'pending/running/success/failed/retrying/cancelled',
   `params`         TEXT,
+  `trace_parent`   VARCHAR(128) NOT NULL DEFAULT '',
+  `trace_state`    VARCHAR(512) NOT NULL DEFAULT '',
   `result`         TEXT,
   `error_message`  TEXT,
   `retry_count`    INT             NOT NULL DEFAULT 0,
@@ -180,6 +182,7 @@ CREATE TABLE IF NOT EXISTS `async_tasks` (
   `created_at`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `idx_status_created` (`status`, `created_at`),
   KEY `idx_task_type_status` (`task_type`, `status`),
   KEY `idx_user` (`user_id`, `user_role`),
   KEY `idx_business` (`task_type`, `business_id`)

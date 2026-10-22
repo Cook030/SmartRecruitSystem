@@ -6,15 +6,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"logic-grpc-service/ai"
 	"logic-grpc-service/config"
 	"logic-grpc-service/model"
 	"logic-grpc-service/oss"
 	"logic-grpc-service/pb"
 	"logic-grpc-service/repository"
+	"logic-grpc-service/telemetry"
 
 	"github.com/ledongthuc/pdf"
 	"google.golang.org/grpc/codes"
@@ -23,17 +30,34 @@ import (
 
 type TaskService struct {
 	pb.UnimplementedTaskServiceServer
-	repo *repository.Repository
-	cfg  *config.Config
+	repo        *repository.Repository
+	cfg         *config.Config
+	workerCtx   context.Context
+	stopWorkers context.CancelFunc
+	workers     *sync.WaitGroup
 }
 
-func NewTaskService(repo *repository.Repository, cfg *config.Config) *TaskService {
-	ts := &TaskService{repo: repo, cfg: cfg}
-	go ts.StartWorker()
+func NewTaskService(ctx context.Context, repo *repository.Repository, cfg *config.Config) *TaskService {
+	ctx, cancel := context.WithCancel(ctx)
+	ts := &TaskService{repo: repo, cfg: cfg, workerCtx: ctx, stopWorkers: cancel, workers: &sync.WaitGroup{}}
+	ts.StartWorker()
 	return ts
 }
 
+func (s *TaskService) Close() {
+	s.stopWorkers()
+	done := make(chan struct{})
+	go func() { s.workers.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+	}
+}
+
 func (s *TaskService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.CreateTaskResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	task := &model.AsyncTask{
 		TaskType:   req.TaskType,
 		BusinessID: req.BusinessId,
@@ -43,13 +67,16 @@ func (s *TaskService) CreateTask(ctx context.Context, req *pb.CreateTaskRequest)
 		Status:     "pending",
 		MaxRetries: 3,
 	}
-	if err := s.repo.CreateAndQueueTask(task); err != nil {
+	if err := s.repo.CreateAndQueueTask(ctx, task); err != nil {
 		return nil, status.Error(codes.Internal, "failed to create task")
 	}
 	return &pb.CreateTaskResponse{TaskId: task.ID}, nil
 }
 
 func (s *TaskService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.GetTaskResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	task, err := s.repo.GetAsyncTaskByID(req.TaskId)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "task not found")
@@ -78,6 +105,9 @@ func (s *TaskService) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.
 }
 
 func (s *TaskService) TriggerAIMatch(ctx context.Context, req *pb.TriggerAIMatchRequest) (*pb.CreateTaskResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	params, _ := json.Marshal(map[string]uint64{
 		"application_id": req.ApplicationId,
 		"hr_id":          req.HrId,
@@ -91,13 +121,16 @@ func (s *TaskService) TriggerAIMatch(ctx context.Context, req *pb.TriggerAIMatch
 		Status:     "pending",
 		MaxRetries: 3,
 	}
-	if err := s.repo.CreateAndQueueTask(task); err != nil {
+	if err := s.repo.CreateAndQueueTask(ctx, task); err != nil {
 		return nil, status.Error(codes.Internal, "failed to create task")
 	}
 	return &pb.CreateTaskResponse{TaskId: task.ID}, nil
 }
 
 func (s *TaskService) TriggerResumeParse(ctx context.Context, req *pb.TriggerResumeParseRequest) (*pb.CreateTaskResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	params, _ := json.Marshal(map[string]uint64{
 		"resume_id":    req.ResumeId,
 		"candidate_id": req.CandidateId,
@@ -111,13 +144,16 @@ func (s *TaskService) TriggerResumeParse(ctx context.Context, req *pb.TriggerRes
 		Status:     "pending",
 		MaxRetries: 3,
 	}
-	if err := s.repo.CreateAndQueueTask(task); err != nil {
+	if err := s.repo.CreateAndQueueTask(ctx, task); err != nil {
 		return nil, status.Error(codes.Internal, "failed to create task")
 	}
 	return &pb.CreateTaskResponse{TaskId: task.ID}, nil
 }
 
 func (s *TaskService) RefreshDashboard(ctx context.Context, req *pb.RefreshDashboardRequest) (*pb.CreateTaskResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	params, _ := json.Marshal(map[string]uint64{
 		"hr_id": req.HrId,
 	})
@@ -130,13 +166,16 @@ func (s *TaskService) RefreshDashboard(ctx context.Context, req *pb.RefreshDashb
 		Status:     "pending",
 		MaxRetries: 3,
 	}
-	if err := s.repo.CreateAndQueueTask(task); err != nil {
+	if err := s.repo.CreateAndQueueTask(ctx, task); err != nil {
 		return nil, status.Error(codes.Internal, "failed to create task")
 	}
 	return &pb.CreateTaskResponse{TaskId: task.ID}, nil
 }
 
 func (s *TaskService) GetResumeParseResult(ctx context.Context, req *pb.GetResumeParseResultRequest) (*pb.GetResumeParseResultResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	result, err := s.repo.GetResumeParseResultByResumeID(req.ResumeId)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "parse result not found")
@@ -156,6 +195,9 @@ func (s *TaskService) GetResumeParseResult(ctx context.Context, req *pb.GetResum
 }
 
 func (s *TaskService) DeleteResumeParseResult(ctx context.Context, req *pb.DeleteResumeParseResultRequest) (*pb.DeleteResumeParseResultResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if err := s.repo.DeleteResumeParseResultByResumeID(req.ResumeId); err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete parse result")
 	}
@@ -165,14 +207,17 @@ func (s *TaskService) DeleteResumeParseResult(ctx context.Context, req *pb.Delet
 func (s *TaskService) StartWorker() {
 	log.Println("Task worker started")
 	if s.repo.Redis.Available() {
+		s.workers.Add(1)
 		go s.redisWorker()
 	}
+	s.workers.Add(1)
 	go s.mysqlWorker()
 }
 
 func (s *TaskService) redisWorker() {
-	for {
-		result, err := s.repo.Redis.BRPop(context.Background(), 5*time.Second, "task:queue")
+	defer s.workers.Done()
+	for s.workerCtx.Err() == nil {
+		result, err := s.repo.Redis.BRPop(s.workerCtx, 5*time.Second, "task:queue")
 		if err != nil || result == "" {
 			continue
 		}
@@ -180,7 +225,7 @@ func (s *TaskService) redisWorker() {
 		if _, err := fmt.Sscanf(result, "%d", &taskID); err != nil {
 			continue
 		}
-		task, err := s.repo.GetAsyncTaskByID(taskID)
+		task, err := s.repo.WithContext(s.workerCtx).GetAsyncTaskByID(taskID)
 		if err != nil {
 			continue
 		}
@@ -191,28 +236,64 @@ func (s *TaskService) redisWorker() {
 }
 
 func (s *TaskService) mysqlWorker() {
-	for {
-		tasks, err := s.repo.ListPendingTasks(10)
+	defer s.workers.Done()
+	for s.workerCtx.Err() == nil {
+		tasks, err := s.repo.WithContext(s.workerCtx).ListPendingTasks(10)
 		if err != nil {
-			time.Sleep(5 * time.Second)
+			if !workerDelay(s.workerCtx, 5*time.Second) {
+				return
+			}
 			continue
 		}
 		for _, t := range tasks {
 			s.processTask(&t)
 		}
 		if len(tasks) == 0 {
-			time.Sleep(10 * time.Second)
+			if !workerDelay(s.workerCtx, 10*time.Second) {
+				return
+			}
 		} else {
-			time.Sleep(2 * time.Second)
+			if !workerDelay(s.workerCtx, 2*time.Second) {
+				return
+			}
 		}
 	}
 }
 
+func workerDelay(ctx context.Context, delay time.Duration) bool {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
 func (s *TaskService) processTask(task *model.AsyncTask) {
+	if s.workerCtx.Err() != nil {
+		return
+	}
+	parent := otel.GetTextMapPropagator().Extract(s.workerCtx, propagation.MapCarrier{"traceparent": task.TraceParent, "tracestate": task.TraceState})
+	taskType := telemetry.TaskType(task.TaskType)
+	ctx, end := telemetry.Start(parent, "task.execute", attribute.String("task_type", taskType))
+	trace.SpanFromContext(ctx).SetAttributes(attribute.Int64("task.id", int64(task.ID)), attribute.Int("task.retry", task.RetryCount))
+	outcome := "error"
+	defer func() { end(outcome) }()
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
+	if task.RetryCount == 0 {
+		telemetry.TaskLatency(ctx, taskType, "first_start", time.Since(task.CreatedAt))
+	}
 	now := time.Now()
 	task.Status = "running"
 	task.StartedAt = &now
-	s.repo.UpdateAsyncTask(task)
+	if err := s.repo.UpdateAsyncTask(task); err != nil {
+		outcome = "state_update_failed"
+		return
+	}
 
 	var taskErr error
 	switch task.TaskType {
@@ -239,12 +320,23 @@ func (s *TaskService) processTask(task *model.AsyncTask) {
 		} else {
 			task.Status = "failed"
 		}
-		log.Printf("Task %d (%s) failed: %v, retries: %d", task.ID, task.TaskType, taskErr, task.RetryCount)
+		slog.WarnContext(ctx, "task attempt failed", "task_id", task.ID, "task_type", taskType, "outcome", telemetry.Outcome(taskErr), "retries", task.RetryCount)
 	} else {
 		task.Status = "success"
-		log.Printf("Task %d (%s) completed successfully", task.ID, task.TaskType)
+		slog.InfoContext(ctx, "task completed", "task_id", task.ID, "task_type", taskType)
 	}
-	s.repo.UpdateAsyncTask(task)
+	// A shutdown cancels dependency calls but must still persist the retry state.
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+	defer cancel()
+	if err := s.repo.WithContext(cleanup).UpdateAsyncTask(task); err != nil {
+		outcome = "state_update_failed"
+		return
+	}
+	outcome = telemetry.Outcome(taskErr)
+	telemetry.Event(ctx, "task."+task.Status, attribute.String("task_type", taskType))
+	if task.Status == "success" || task.Status == "failed" {
+		telemetry.TaskLatency(ctx, taskType, "end_to_end", time.Since(task.CreatedAt))
+	}
 }
 
 func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
@@ -262,9 +354,9 @@ func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
 		return fmt.Errorf("resume not found: %v", err)
 	}
 
-	fileData, err := oss.DownloadFile(s.cfg, resume.OssKey)
+	fileData, err := oss.DownloadFile(s.repo.DB.Statement.Context, s.cfg, resume.OssKey)
 	if err != nil {
-		return fmt.Errorf("failed to download resume from OSS: %v", err)
+		return fmt.Errorf("failed to download resume from OSS: %w", err)
 	}
 
 	var textContent string
@@ -298,9 +390,9 @@ func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
 
 	prompt := fmt.Sprintf("请解析以下简历信息，提取教育经历、工作经历、项目经历和技能标签，以JSON格式返回：{\"education\":\"\",\"experience\":\"\",\"projects\":\"\",\"skills\":\"\"}\n\n简历内容：%s", textContent)
 
-	aiResp, err := ai.CallAI(s.cfg, prompt)
+	aiResp, err := ai.CallAI(s.repo.DB.Statement.Context, s.cfg, prompt)
 	if err != nil {
-		return fmt.Errorf("AI call failed: %v", err)
+		return fmt.Errorf("AI call failed: %w", err)
 	}
 
 	result := &model.ResumeParseResult{
@@ -320,13 +412,15 @@ func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
 		result.Experience = parsed.Experience
 		result.Projects = parsed.Projects
 		result.Skills = parsed.Skills
+	} else {
+		telemetry.Event(s.repo.DB.Statement.Context, "ai.invalid_json", attribute.String("task_type", "resume_parse"))
 	}
 
 	if err := s.repo.SaveResumeParseResult(result); err != nil {
 		return err
 	}
 
-	s.repo.CacheDel(context.Background(), fmt.Sprintf("ai:resume_parse:%d", params.ResumeID))
+	s.repo.CacheDel(s.repo.DB.Statement.Context, fmt.Sprintf("ai:resume_parse:%d", params.ResumeID))
 
 	parseResult := map[string]interface{}{
 		"resume_id":  params.ResumeID,
@@ -375,9 +469,9 @@ func (s *TaskService) processAIMatch(task *model.AsyncTask) error {
 岗位要求：%s
 候选人信息：%s`, job.Requirement, candidateInfo)
 
-	aiResp, err := ai.CallAI(s.cfg, prompt)
+	aiResp, err := ai.CallAI(s.repo.DB.Statement.Context, s.cfg, prompt)
 	if err != nil {
-		return fmt.Errorf("AI call failed: %v", err)
+		return fmt.Errorf("AI call failed: %w", err)
 	}
 
 	result := &model.AIMatchResult{
@@ -400,13 +494,18 @@ func (s *TaskService) processAIMatch(task *model.AsyncTask) error {
 		result.Strengths = parsed.Strengths
 		result.Weaknesses = parsed.Weaknesses
 		result.InterviewTips = parsed.InterviewTips
+	} else {
+		telemetry.Event(s.repo.DB.Statement.Context, "ai.invalid_json", attribute.String("task_type", "ai_match"))
+	}
+	if parsed.MatchScore < 0 || parsed.MatchScore > 100 {
+		telemetry.Event(s.repo.DB.Statement.Context, "ai.invalid_score")
 	}
 
 	if err := s.repo.SaveAIMatchResult(result); err != nil {
 		return err
 	}
 
-	s.repo.CacheDel(context.Background(), fmt.Sprintf("ai:job_match:%d:%d", job.ID, application.CandidateID))
+	s.repo.CacheDel(s.repo.DB.Statement.Context, fmt.Sprintf("ai:job_match:%d:%d", job.ID, application.CandidateID))
 	task.Result = fmt.Sprintf(`{"application_id":%d,"match_score":%.1f}`, params.ApplicationID, result.MatchScore)
 	return nil
 }
@@ -432,8 +531,8 @@ func (s *TaskService) processStatsRefresh(task *model.AsyncTask) error {
 		s.repo.SaveDashboardStat(params.HrID, k, string(val))
 	}
 
-	s.repo.CacheDelByPrefix(context.Background(), fmt.Sprintf("stats:hot_jobs:%d:", params.HrID))
-	s.repo.CacheDelByPrefix(context.Background(), "stats:hot_skills:")
+	s.repo.CacheDelByPrefix(s.repo.DB.Statement.Context, fmt.Sprintf("stats:hot_jobs:%d:", params.HrID))
+	s.repo.CacheDelByPrefix(s.repo.DB.Statement.Context, "stats:hot_skills:")
 
 	resultJSON, _ := json.Marshal(stats)
 	task.Result = string(resultJSON)

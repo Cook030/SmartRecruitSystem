@@ -34,6 +34,9 @@ func (s *DashboardService) invalidateDashboardCache(ctx context.Context, hrID ui
 }
 
 func (s *DashboardService) GetOverview(ctx context.Context, req *pb.DashboardOverviewRequest) (*pb.DashboardOverviewResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	key := fmt.Sprintf("dashboard:overview:%d", req.HrId)
 	var resp pb.DashboardOverviewResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 2*time.Minute, func() (interface{}, error) {
@@ -62,6 +65,9 @@ func (s *DashboardService) GetOverview(ctx context.Context, req *pb.DashboardOve
 }
 
 func (s *DashboardService) GetHotJobs(ctx context.Context, req *pb.DashboardHotJobsRequest) (*pb.DashboardHotJobsResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	key := fmt.Sprintf("dashboard:hot_jobs:%d:limit:%d", req.HrId, req.Limit)
 	var resp pb.DashboardHotJobsResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 5*time.Minute, func() (interface{}, error) {
@@ -80,6 +86,9 @@ func (s *DashboardService) GetHotJobs(ctx context.Context, req *pb.DashboardHotJ
 }
 
 func (s *DashboardService) GetHotSkills(ctx context.Context, req *pb.DashboardHotSkillsRequest) (*pb.DashboardHotSkillsResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	key := fmt.Sprintf("dashboard:hot_skills:%d:limit:%d", req.HrId, req.Limit)
 	var resp pb.DashboardHotSkillsResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 5*time.Minute, func() (interface{}, error) {
@@ -106,6 +115,9 @@ func (s *DashboardService) GetHotSkills(ctx context.Context, req *pb.DashboardHo
 }
 
 func (s *DashboardService) GetCandidateFunnel(ctx context.Context, req *pb.DashboardFunnelRequest) (*pb.DashboardFunnelResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	key := fmt.Sprintf("dashboard:funnel:%d", req.HrId)
 	var resp pb.DashboardFunnelResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 2*time.Minute, func() (interface{}, error) {
@@ -122,6 +134,9 @@ func (s *DashboardService) GetCandidateFunnel(ctx context.Context, req *pb.Dashb
 }
 
 func (s *DashboardService) GetAIMatchStats(ctx context.Context, req *pb.DashboardAIMatchRequest) (*pb.DashboardAIMatchResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	key := fmt.Sprintf("dashboard:ai_match:%d", req.HrId)
 	var resp pb.DashboardAIMatchResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 2*time.Minute, func() (interface{}, error) {
@@ -138,15 +153,21 @@ func (s *DashboardService) GetAIMatchStats(ctx context.Context, req *pb.Dashboar
 }
 
 func (s *DashboardService) GetJobTrend(ctx context.Context, req *pb.DashboardTrendRequest) (*pb.DashboardTrendResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	return s.getTrend(req.HrId, req.StartDate, req.EndDate, req.Range, true)
 }
 
 func (s *DashboardService) GetApplicationTrend(ctx context.Context, req *pb.DashboardTrendRequest) (*pb.DashboardTrendResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	return s.getTrend(req.HrId, req.StartDate, req.EndDate, req.Range, false)
 }
 
 func (s *DashboardService) getTrend(hrID uint64, startDate, endDate, rng string, jobs bool) (*pb.DashboardTrendResponse, error) {
-	ctx := context.Background()
+	ctx := s.repo.DB.Statement.Context
 	prefix := "job_trend"
 	if !jobs { prefix = "app_trend" }
 	key := fmt.Sprintf("dashboard:%s:%d:%s:%s:%s", prefix, hrID, startDate, endDate, rng)

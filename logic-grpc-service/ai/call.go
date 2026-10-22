@@ -10,9 +10,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-func CallAI(cfg *config.Config, prompt string) (string, error) {
-	ctx := context.Background()
-
+func CallAI(ctx context.Context, cfg *config.Config, prompt string) (string, error) {
 	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
 		BaseURL: cfg.AI.BaseURL,
 		Model:   cfg.AI.Model,
@@ -33,7 +31,9 @@ func CallAI(cfg *config.Config, prompt string) (string, error) {
 		},
 	}
 
-	resp, err := withTokenBudget(withModelCircuit(chatModel), cfg.AI.TokenBudget).Generate(ctx, messages)
+	limitedModel := withTokenBudget(withModelCircuit(chatModel, cfg.AI.Model), cfg.AI.TokenBudget)
+	defer recordModelAttempts(ctx, limitedModel)
+	resp, err := limitedModel.Generate(ctx, messages)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate: %w", err)
 	}

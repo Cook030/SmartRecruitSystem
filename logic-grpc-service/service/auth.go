@@ -22,6 +22,9 @@ func NewAuthService(repo *repository.Repository) *AuthService {
 }
 
 func (s *AuthService) HrRegister(ctx context.Context, req *pb.HrRegisterRequest) (*pb.HrRegisterResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.Username == "" || req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "username and password are required")
 	}
@@ -48,6 +51,9 @@ func (s *AuthService) HrRegister(ctx context.Context, req *pb.HrRegisterRequest)
 }
 
 func (s *AuthService) HrLogin(ctx context.Context, req *pb.HrLoginRequest) (*pb.HrLoginResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.Username == "" || req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "username and password are required")
 	}
@@ -69,6 +75,9 @@ func (s *AuthService) HrLogin(ctx context.Context, req *pb.HrLoginRequest) (*pb.
 }
 
 func (s *AuthService) CandidateRegister(ctx context.Context, req *pb.CandidateRegisterRequest) (*pb.CandidateRegisterResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.Username == "" || req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "username and password are required")
 	}
@@ -97,6 +106,9 @@ func (s *AuthService) CandidateRegister(ctx context.Context, req *pb.CandidateRe
 }
 
 func (s *AuthService) CandidateLogin(ctx context.Context, req *pb.CandidateLoginRequest) (*pb.CandidateLoginResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.Username == "" || req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "username and password are required")
 	}

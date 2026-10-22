@@ -21,6 +21,11 @@ func NewRepository(db *gorm.DB, rdb *rds.Client) *Repository {
 	return &Repository{DB: db, Redis: rdb}
 }
 
+// WithContext returns a request-scoped handle; shared service state stays unchanged.
+func (r *Repository) WithContext(ctx context.Context) *Repository {
+	return &Repository{DB: r.DB.WithContext(ctx), Redis: r.Redis}
+}
+
 func (r *Repository) CacheGet(ctx context.Context, key string, dest interface{}, ttl time.Duration, queryFn func() (interface{}, error)) error {
 	if r.Redis.Available() {
 		err := r.Redis.GetJSON(ctx, key, dest)

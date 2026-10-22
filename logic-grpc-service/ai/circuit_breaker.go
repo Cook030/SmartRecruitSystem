@@ -8,10 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"logic-grpc-service/telemetry"
+
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 	provider "github.com/meguminnnnnnnnn/go-openai"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var ErrModelCircuitOpen = errors.New("AI service temporarily unavailable; please retry later")
@@ -100,10 +103,15 @@ func modelProviderFailure(err error) bool {
 type circuitModel struct {
 	model.ToolCallingChatModel
 	circuit *modelCircuit
+	name    string
 }
 
-func withModelCircuit(inner model.ToolCallingChatModel) *circuitModel {
-	return &circuitModel{ToolCallingChatModel: inner, circuit: providerCircuit}
+func withModelCircuit(inner model.ToolCallingChatModel, names ...string) *circuitModel {
+	name := "unknown"
+	if len(names) > 0 {
+		name = names[0]
+	}
+	return &circuitModel{ToolCallingChatModel: inner, circuit: providerCircuit, name: name}
 }
 
 func (m *circuitModel) WithTools(tools []*schema.ToolInfo) (model.ToolCallingChatModel, error) {
@@ -111,7 +119,7 @@ func (m *circuitModel) WithTools(tools []*schema.ToolInfo) (model.ToolCallingCha
 	if err != nil {
 		return nil, err
 	}
-	return &circuitModel{ToolCallingChatModel: inner, circuit: m.circuit}, nil
+	return &circuitModel{ToolCallingChatModel: inner, circuit: m.circuit, name: m.name}, nil
 }
 
 func (m *circuitModel) Generate(ctx context.Context, messages []*schema.Message, opts ...model.Option) (*schema.Message, error) {
@@ -120,12 +128,23 @@ func (m *circuitModel) Generate(ctx context.Context, messages []*schema.Message,
 	}
 	generation, err := m.circuit.allow(time.Now())
 	if err != nil {
+		telemetry.Event(ctx, "ai.circuit_rejected")
 		return nil, err
 	}
 	// Background analysis otherwise has no request deadline.
 	ctx, cancel := context.WithTimeout(ctx, ChatTimeout)
 	defer cancel()
+	ctx, end := telemetry.Start(ctx, "ai.model", attribute.String("model", m.name))
 	response, err := m.ToolCallingChatModel.Generate(ctx, messages, opts...)
+	end(modelOutcome(err))
+	if response != nil && response.ResponseMeta != nil && response.ResponseMeta.Usage != nil {
+		usage := response.ResponseMeta.Usage
+		telemetry.Tokens(ctx, m.name, "input", usage.PromptTokens)
+		telemetry.Tokens(ctx, m.name, "output", usage.CompletionTokens)
+		telemetry.Tokens(ctx, m.name, "total", max(usage.TotalTokens, usage.PromptTokens+usage.CompletionTokens))
+	} else {
+		telemetry.Event(ctx, "ai.usage_missing", attribute.String("model", m.name))
+	}
 	m.circuit.finish(generation, err, time.Now())
 	return response, err
 }

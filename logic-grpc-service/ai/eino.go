@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"logic-grpc-service/telemetry"
 	"time"
 
 	"logic-grpc-service/chatcontext"
@@ -54,7 +55,8 @@ func Chat(ctx context.Context, cfg *config.Config, reader recruitment.Reader, hr
 	if err != nil {
 		return ChatResult{}, fmt.Errorf("create chat model: %w", err)
 	}
-	limitedModel := withTokenBudget(withModelCircuit(chatModel), cfg.AI.TokenBudget)
+	limitedModel := withTokenBudget(withModelCircuit(chatModel, cfg.AI.Model), cfg.AI.TokenBudget)
+	defer recordModelAttempts(ctx, limitedModel)
 	prompt := recruitmentPrompt + "\n当前日期：" + time.Now().In(recruitment.Shanghai).Format("2006-01-02")
 	// Reserve a full handoff and message/envelope space before selecting history.
 	prepared, compactErr := chatcontext.Prepare(ctx, input, 24*1024-len(prompt)-len(userMessage)-chatcontext.MaxHandoffBytes-2048,
@@ -69,6 +71,7 @@ func Chat(ctx context.Context, cfg *config.Config, reader recruitment.Reader, hr
 		slog.WarnContext(ctx, "chat context compaction degraded", "hr_id", hrID, "until_id", input.State.UntilID)
 	}
 	if prepared.Incomplete {
+		telemetry.Event(ctx, "context.degraded")
 		prompt += "\n部分历史尚未成功压缩或不在当前窗口；交接文档可能未覆盖后续变更，缺少或冲突的条件必须向用户澄清，不能猜测。"
 	}
 	messages := []*schema.Message{schema.SystemMessage(prompt)}
@@ -79,12 +82,15 @@ func Chat(ctx context.Context, cfg *config.Config, reader recruitment.Reader, hr
 	return ChatResult{Reply: reply, ContextUpdate: prepared.Update, ContextNotes: notes}, err
 }
 
-func runRecruitmentAgent(ctx context.Context, chatModel model.ToolCallingChatModel, reader recruitment.Reader, hrID uint64, messages []*schema.Message) (string, string, error) {
+func runRecruitmentAgent(ctx context.Context, chatModel model.ToolCallingChatModel, reader recruitment.Reader, hrID uint64, messages []*schema.Message) (_ string, _ string, retErr error) {
+	ctx, end := telemetry.Start(ctx, "ai.agent")
+	defer func() { end(modelOutcome(retErr)) }()
 	tools, err := recruitmentTools(reader, hrID)
 	if err != nil {
 		return "", "", fmt.Errorf("create recruitment tools: %w", err)
 	}
 	budget := &queryBudget{}
+	defer func() { agentTools.Record(ctx, int64(budget.calls.Load())) }()
 	agent, err := react.NewAgent(ctx, &react.AgentConfig{
 		ToolCallingModel: chatModel,
 		ToolsConfig: compose.ToolsNodeConfig{
@@ -100,6 +106,9 @@ func runRecruitmentAgent(ctx context.Context, chatModel model.ToolCallingChatMod
 	}
 	response, err := agent.Generate(ctx, messages)
 	if err != nil {
+		if errors.Is(err, compose.ErrExceedMaxSteps) {
+			telemetry.Event(ctx, "ai.step_budget_exceeded")
+		}
 		return "", "", fmt.Errorf("run recruitment agent: %w", err)
 	}
 	if response == nil || response.Content == "" {

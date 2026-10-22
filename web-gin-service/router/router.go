@@ -1,9 +1,11 @@
 package router
 
 import (
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"web-gin-service/handler"
 	"web-gin-service/middleware"
 	"web-gin-service/pb"
+	"web-gin-service/telemetry"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,7 +14,8 @@ func SetupRouter(authClient pb.AuthServiceClient, jobClient pb.JobServiceClient,
 	candidateClient pb.CandidateServiceClient, chatClient pb.ChatServiceClient,
 	dashboardClient pb.DashboardServiceClient, taskClient pb.TaskServiceClient) *gin.Engine {
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(otelgin.Middleware("recruitment-web"), telemetry.HTTPMetrics(), gin.Recovery())
 	r.Use(middleware.CORSMiddleware())
 
 	authHandler := handler.NewAuthHandler(authClient)

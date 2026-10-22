@@ -5,19 +5,29 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"logic-grpc-service/model"
+	"logic-grpc-service/telemetry"
 )
 
 func (r *Repository) CreateAsyncTask(task *model.AsyncTask) error {
 	return r.DB.Create(task).Error
 }
 
-func (r *Repository) CreateAndQueueTask(task *model.AsyncTask) error {
-	if err := r.DB.Create(task).Error; err != nil {
+func (r *Repository) CreateAndQueueTask(ctx context.Context, task *model.AsyncTask) (retErr error) {
+	ctx, end := telemetry.Start(ctx, "task.create", attribute.String("task_type", telemetry.TaskType(task.TaskType)))
+	defer func() { end(telemetry.Outcome(retErr)) }()
+	carrier := propagation.MapCarrier{}
+	otel.GetTextMapPropagator().Inject(ctx, carrier)
+	task.TraceParent, task.TraceState = carrier.Get("traceparent"), carrier.Get("tracestate")
+	if err := r.DB.WithContext(ctx).Create(task).Error; err != nil {
 		return err
 	}
 	if r.Redis.Available() {
-		if err := r.Redis.LPush(context.Background(), "task:queue", fmt.Sprintf("%d", task.ID)); err != nil {
+		if err := r.Redis.LPush(ctx, "task:queue", fmt.Sprintf("%d", task.ID)); err != nil {
+			telemetry.Event(ctx, "task.enqueue_failed")
 			fmt.Printf("failed to push task %d to redis queue: %v\n", task.ID, err)
 		}
 	}
@@ -33,7 +43,11 @@ func (r *Repository) GetAsyncTaskByID(id uint64) (*model.AsyncTask, error) {
 }
 
 func (r *Repository) UpdateAsyncTask(task *model.AsyncTask) error {
-	return r.DB.Save(task).Error
+	err := r.DB.Save(task).Error
+	if err != nil {
+		telemetry.Event(r.DB.Statement.Context, "task.state_update_failed")
+	}
+	return err
 }
 
 func (r *Repository) ListPendingTasks(limit int) ([]model.AsyncTask, error) {

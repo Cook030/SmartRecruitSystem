@@ -29,6 +29,9 @@ func (s *JobService) invalidateJobCache(ctx context.Context, hrID uint64) {
 }
 
 func (s *JobService) CreateJob(ctx context.Context, req *pb.CreateJobRequest) (*pb.CreateJobResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	if req.Title == "" {
 		return nil, status.Error(codes.InvalidArgument, "title is required")
 	}
@@ -51,6 +54,9 @@ func (s *JobService) CreateJob(ctx context.Context, req *pb.CreateJobRequest) (*
 }
 
 func (s *JobService) UpdateJob(ctx context.Context, req *pb.UpdateJobRequest) (*pb.UpdateJobResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	job, err := s.repo.GetJobByID(req.Id)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "job not found")
@@ -75,6 +81,9 @@ func (s *JobService) UpdateJob(ctx context.Context, req *pb.UpdateJobRequest) (*
 }
 
 func (s *JobService) OfflineJob(ctx context.Context, req *pb.OfflineJobRequest) (*pb.OfflineJobResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	job, err := s.repo.GetJobByID(req.Id)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "job not found")
@@ -93,6 +102,9 @@ func (s *JobService) OfflineJob(ctx context.Context, req *pb.OfflineJobRequest) 
 }
 
 func (s *JobService) ListHrJobs(ctx context.Context, req *pb.ListHrJobsRequest) (*pb.ListHrJobsResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	page, pageSize := normalizePageParams(int(req.Page), int(req.PageSize))
 	jobs, total, err := s.repo.ListJobsByHrID(req.HrId, page, pageSize)
 	if err != nil {
@@ -110,6 +122,9 @@ type cachedJobList struct {
 }
 
 func (s *JobService) ListPublicJobs(ctx context.Context, req *pb.ListPublicJobsRequest) (*pb.ListPublicJobsResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	page, pageSize := normalizePageParams(int(req.Page), int(req.PageSize))
 	key := fmt.Sprintf("jobs:public:list:page:%d:size:%d", page, pageSize)
 	var cached cachedJobList
@@ -130,6 +145,9 @@ func (s *JobService) ListPublicJobs(ctx context.Context, req *pb.ListPublicJobsR
 }
 
 func (s *JobService) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.GetJobResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	key := fmt.Sprintf("job:detail:%d", req.Id)
 	var job model.Job
 	err := s.repo.CacheGet(ctx, key, &job, 5*time.Minute, func() (interface{}, error) {

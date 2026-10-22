@@ -6,6 +6,8 @@ import (
 	"errors"
 	"sync"
 
+	"logic-grpc-service/telemetry"
+
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 )
@@ -20,6 +22,7 @@ type tokenBudget struct {
 	mu        sync.Mutex
 	remaining int
 	stopped   bool
+	calls     int
 }
 
 type budgetModel struct {
@@ -79,9 +82,11 @@ func (m *budgetModel) Generate(ctx context.Context, messages []*schema.Message, 
 	if m.budget.stopped || m.budget.remaining < reserved {
 		m.budget.stopped = true
 		m.budget.mu.Unlock()
+		telemetry.Event(ctx, "ai.token_budget_exceeded")
 		return nil, ErrTokenBudgetExceeded
 	}
 	m.budget.remaining -= reserved
+	m.budget.calls++
 	m.budget.mu.Unlock()
 	response, err := m.inner.Generate(ctx, messages, append(opts, model.WithMaxTokens(output))...)
 	// Unknown usage (including errors/timeouts) retains the reservation.
@@ -101,6 +106,7 @@ func (m *budgetModel) Generate(ctx context.Context, messages []*schema.Message, 
 	exceeded := m.budget.remaining < 0
 	m.budget.mu.Unlock()
 	if exceeded {
+		telemetry.Event(ctx, "ai.token_budget_exceeded")
 		return response, ErrTokenBudgetExceeded
 	}
 	return response, err

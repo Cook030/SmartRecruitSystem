@@ -29,6 +29,9 @@ func NewCandidateService(repo *repository.Repository, cfg *config.Config) *Candi
 }
 
 func (s *CandidateService) GetProfile(ctx context.Context, req *pb.GetProfileRequest) (*pb.GetProfileResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	p, err := s.repo.GetProfile(req.CandidateId)
 	if err != nil {
 		return &pb.GetProfileResponse{Profile: &pb.ProfileInfo{CandidateId: req.CandidateId}}, nil
@@ -37,6 +40,9 @@ func (s *CandidateService) GetProfile(ctx context.Context, req *pb.GetProfileReq
 }
 
 func (s *CandidateService) UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest) (*pb.UpdateProfileResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	isComplete := req.Name != "" && req.Phone != "" && req.Education != "" &&
 		req.University != "" && req.Experience != "" && req.Skills != ""
 
@@ -61,6 +67,9 @@ func (s *CandidateService) UpdateProfile(ctx context.Context, req *pb.UpdateProf
 }
 
 func (s *CandidateService) UploadResume(ctx context.Context, req *pb.UploadResumeRequest) (*pb.UploadResumeResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	allowedTypes := map[string]bool{"pdf": true, "doc": true, "docx": true}
 	fileType := strings.ToLower(req.FileType)
 	if !allowedTypes[fileType] {
@@ -73,7 +82,7 @@ func (s *CandidateService) UploadResume(ctx context.Context, req *pb.UploadResum
 
 	ossKey := fmt.Sprintf("resumes/%d/%d_%s", req.CandidateId, time.Now().UnixMilli(), req.FileName)
 
-	if err := ossClient.UploadFile(s.cfg, ossKey, req.FileData); err != nil {
+	if err := ossClient.UploadFile(ctx, s.cfg, ossKey, req.FileData); err != nil {
 		return nil, status.Error(codes.Internal, "failed to upload to OSS: "+err.Error())
 	}
 
@@ -94,7 +103,7 @@ func (s *CandidateService) UploadResume(ctx context.Context, req *pb.UploadResum
 		Params:     fmt.Sprintf(`{"resume_id":%d,"candidate_id":%d,"oss_key":"%s"}`, resume.ID, req.CandidateId, ossKey),
 		MaxRetries: 3,
 	}
-	if err := s.repo.CreateAndQueueTask(task); err != nil {
+	if err := s.repo.CreateAndQueueTask(ctx, task); err != nil {
 		fmt.Printf("failed to create resume parse task: %v\n", err)
 	}
 
@@ -104,12 +113,15 @@ func (s *CandidateService) UploadResume(ctx context.Context, req *pb.UploadResum
 }
 
 func (s *CandidateService) GetResume(ctx context.Context, req *pb.GetResumeRequest) (*pb.GetResumeResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	resume, err := s.repo.GetResumeByCandidate(req.CandidateId)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "resume not found")
 	}
 
-	signedURL, err := ossClient.GetSignedURL(s.cfg, resume.OssKey)
+	signedURL, err := ossClient.GetSignedURL(ctx, s.cfg, resume.OssKey)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to generate signed URL")
 	}
@@ -129,12 +141,15 @@ func (s *CandidateService) GetResume(ctx context.Context, req *pb.GetResumeReque
 }
 
 func (s *CandidateService) DeleteResume(ctx context.Context, req *pb.DeleteResumeRequest) (*pb.DeleteResumeResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	resume, err := s.repo.GetResumeByCandidate(req.CandidateId)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "resume not found")
 	}
 
-	if err := ossClient.DeleteFile(s.cfg, resume.OssKey); err != nil {
+	if err := ossClient.DeleteFile(ctx, s.cfg, resume.OssKey); err != nil {
 		fmt.Printf("failed to delete OSS file %s: %v\n", resume.OssKey, err)
 	}
 
@@ -148,6 +163,9 @@ func (s *CandidateService) DeleteResume(ctx context.Context, req *pb.DeleteResum
 }
 
 func (s *CandidateService) ApplyJob(ctx context.Context, req *pb.ApplyJobRequest) (*pb.ApplyJobResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	profile, err := s.repo.GetProfile(req.CandidateId)
 	if err != nil || !profile.IsComplete {
 		return nil, status.Error(codes.FailedPrecondition, "please complete your profile first")
@@ -186,7 +204,7 @@ func (s *CandidateService) ApplyJob(ctx context.Context, req *pb.ApplyJobRequest
 		Params:     fmt.Sprintf(`{"application_id":%d,"job_id":%d,"candidate_id":%d}`, app.ID, req.JobId, req.CandidateId),
 		MaxRetries: 3,
 	}
-	if err := s.repo.CreateAndQueueTask(matchTask); err != nil {
+	if err := s.repo.CreateAndQueueTask(ctx, matchTask); err != nil {
 		fmt.Printf("failed to create ai match task: %v\n", err)
 	}
 
@@ -199,6 +217,9 @@ func (s *CandidateService) ApplyJob(ctx context.Context, req *pb.ApplyJobRequest
 }
 
 func (s *CandidateService) ListMyApplications(ctx context.Context, req *pb.ListMyApplicationsRequest) (*pb.ListMyApplicationsResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	page, pageSize := normalizePageParams(int(req.Page), int(req.PageSize))
 	apps, total, err := s.repo.ListApplicationsByCandidate(req.CandidateId, page, pageSize)
 	if err != nil {
@@ -226,6 +247,9 @@ func (s *CandidateService) ListMyApplications(ctx context.Context, req *pb.ListM
 }
 
 func (s *CandidateService) ListJobApplications(ctx context.Context, req *pb.ListJobApplicationsRequest) (*pb.ListJobApplicationsResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	job, err := s.repo.GetJobByID(req.JobId)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "job not found")
@@ -260,6 +284,9 @@ func (s *CandidateService) ListJobApplications(ctx context.Context, req *pb.List
 }
 
 func (s *CandidateService) GetApplicationDetail(ctx context.Context, req *pb.GetApplicationDetailRequest) (*pb.GetApplicationDetailResponse, error) {
+	scoped := *s
+	scoped.repo = s.repo.WithContext(ctx)
+	s = &scoped
 	app, err := s.repo.GetApplicationByID(req.ApplicationId)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "application not found")
@@ -278,7 +305,7 @@ func (s *CandidateService) GetApplicationDetail(ctx context.Context, req *pb.Get
 	var resumeInfo *pb.ResumeInfo
 	resume, err := s.repo.GetResumeByCandidate(app.CandidateID)
 	if err == nil {
-		signedURL, _ := ossClient.GetSignedURL(s.cfg, resume.OssKey)
+		signedURL, _ := ossClient.GetSignedURL(ctx, s.cfg, resume.OssKey)
 		resumeInfo = &pb.ResumeInfo{
 			Id:          resume.ID,
 			CandidateId: resume.CandidateID,
