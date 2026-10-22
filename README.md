@@ -204,7 +204,6 @@ SmartRecruitSystem/
 ├── logic-grpc-service/          # Logic 核心 gRPC 服务
 │   └── sql/init.sql             # 数据库初始化脚本
 ├── api.md                       # 接口文档
-├── db.md                        # 数据库设计文档
 └── README.md                    # 项目说明
 ```
 
