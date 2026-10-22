@@ -38,9 +38,10 @@ type OSSConfig struct {
 }
 
 type AIConfig struct {
-	APIKey  string `yaml:"api_key"`
-	BaseURL string `yaml:"base_url"`
-	Model   string `yaml:"model"`
+	TokenBudget int    `yaml:"token_budget"` // Per request, across all model calls.
+	APIKey      string `yaml:"api_key"`
+	BaseURL     string `yaml:"base_url"`
+	Model       string `yaml:"model"`
 }
 
 type RedisConfig struct {
@@ -92,6 +93,16 @@ func LoadConfig(path string) (*Config, error) {
 			}
 			*dest = n
 		}
+	}
+	if value, ok := os.LookupEnv("AI_TOKEN_BUDGET"); ok {
+		n, err := strconv.Atoi(value)
+		if err != nil || n <= 0 {
+			return nil, fmt.Errorf("invalid integer setting AI_TOKEN_BUDGET")
+		}
+		cfg.AI.TokenBudget = n
+	}
+	if cfg.AI.TokenBudget < 0 {
+		return nil, fmt.Errorf("invalid ai.token_budget")
 	}
 	GlobalConfig = &cfg
 	return &cfg, nil

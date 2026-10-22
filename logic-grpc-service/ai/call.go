@@ -33,7 +33,7 @@ func CallAI(cfg *config.Config, prompt string) (string, error) {
 		},
 	}
 
-	resp, err := chatModel.Generate(ctx, messages)
+	resp, err := withTokenBudget(chatModel, cfg.AI.TokenBudget).Generate(ctx, messages)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate: %w", err)
 	}

@@ -54,13 +54,17 @@ func Chat(ctx context.Context, cfg *config.Config, reader recruitment.Reader, hr
 	if err != nil {
 		return ChatResult{}, fmt.Errorf("create chat model: %w", err)
 	}
+	limitedModel := withTokenBudget(chatModel, cfg.AI.TokenBudget)
 	prompt := recruitmentPrompt + "\n当前日期：" + time.Now().In(recruitment.Shanghai).Format("2006-01-02")
 	// Reserve a full handoff and message/envelope space before selecting history.
 	prepared, compactErr := chatcontext.Prepare(ctx, input, 24*1024-len(prompt)-len(userMessage)-chatcontext.MaxHandoffBytes-2048,
 		func(ctx context.Context, old *chatcontext.Handoff, messages []chatcontext.Message) (*chatcontext.Handoff, error) {
-			return compactHandoff(ctx, chatModel, old, messages)
+			return compactHandoff(ctx, limitedModel, old, messages)
 		})
 	if compactErr != nil {
+		if errors.Is(compactErr, ErrTokenBudgetExceeded) {
+			return ChatResult{}, compactErr
+		}
 		// Do not log provider errors: they can echo private dialogue or credentials.
 		slog.WarnContext(ctx, "chat context compaction degraded", "hr_id", hrID, "until_id", input.State.UntilID)
 	}
@@ -71,7 +75,7 @@ func Chat(ctx context.Context, cfg *config.Config, reader recruitment.Reader, hr
 	for _, message := range prepared.Structure(userMessage) {
 		messages = append(messages, &schema.Message{Role: schema.RoleType(message.Role), Content: message.Content})
 	}
-	reply, notes, err := runRecruitmentAgent(ctx, chatModel, reader, hrID, messages)
+	reply, notes, err := runRecruitmentAgent(ctx, limitedModel, reader, hrID, messages)
 	return ChatResult{Reply: reply, ContextUpdate: prepared.Update, ContextNotes: notes}, err
 }
 
