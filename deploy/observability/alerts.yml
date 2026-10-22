@@ -1,0 +1,64 @@
+groups:
+  - name: recruitment
+    rules:
+      - alert: RecruitmentServiceDown
+        expr: up{job=~"recruitment-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Recruitment metrics endpoint is unavailable"
+      - alert: RecruitmentHTTPErrorRate
+        expr: |
+          (sum(rate(recruitment_operations_total{operation="http.server",outcome="error"}[5m]))
+          / sum(rate(recruitment_operations_total{operation="http.server"}[5m])) > 0.05)
+          and sum(rate(recruitment_operations_total{operation="http.server"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 5xx rate exceeds 5%"
+      - alert: RecruitmentTaskWaiting
+        expr: max by (task_type) (recruitment_task_oldest_age_seconds{status=~"pending|retrying"}) > 120
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Oldest pending task has waited over 120 seconds"
+      - alert: RecruitmentTaskStalled
+        expr: max by (task_type) (recruitment_task_stalled{status="running"}) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A task has been running for over 5 minutes"
+      - alert: RecruitmentTaskSnapshotFailed
+        expr: recruitment_task_snapshot_up == 0 or time() - recruitment_task_snapshot_timestamp_seconds > 60
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Task database snapshot is failing or stale"
+      - alert: RecruitmentRedisUnavailable
+        expr: recruitment_task_redis_up == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis task queue unavailable; MySQL polling remains active"
+      - alert: RecruitmentAIErrorRate
+        expr: |
+          (sum(rate(recruitment_operations_total{operation="ai.model",outcome!="success"}[5m]))
+          / sum(rate(recruitment_operations_total{operation="ai.model"}[5m])) > 0.2)
+          and sum(increase(recruitment_operations_total{operation="ai.model"}[5m])) >= 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI model failure rate exceeds 20%"
+      - alert: RecruitmentTaskFailed
+        expr: sum by (task_type) (increase(recruitment_events_total{event="task.failed"}[5m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "A task exhausted its retries"

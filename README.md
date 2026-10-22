@@ -207,3 +207,44 @@ SmartRecruitSystem/
 ├── db.md                        # 数据库设计文档
 └── README.md                    # 项目说明
 ```
+
+## 可观测性
+
+Web 和 Logic 使用 OpenTelemetry 采集指标与链路，Prometheus 抓取独立管理端口，链路通过 OTLP/gRPC 发送至 Collector → Jaeger。Grafana 自动配置数据源和 Recruitment Observability 面板。未设置 OTLP 地址时，只提供指标和本地 Trace ID，不进行链路导出。
+
+已有数据库升级前，停止 Logic 写入并执行一次 `logic-grpc-service/sql/migrations/20261022_observability.sql`；首次安装使用最新 `init.sql`，无需重复执行迁移。新增任务追踪字段只存 W3C `traceparent` / `tracestate`，不改变 HTTP/gRPC 协议，也不保存对话或简历正文。任务创建时保存上下文，Redis 消费和 MySQL 轮询都从任务记录恢复。
+
+填写 `.env` 中原有业务配置及 `GRAFANA_ADMIN_PASSWORD`，启动完整 Docker 栈：
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d --build
+```
+
+- Grafana：<http://localhost:3000>，默认用户名 `admin`，密码使用 `.env` 配置。
+- Prometheus：<http://localhost:9091>，Targets 查看两个服务，Alerts 查看规则状态。
+- Jaeger：<http://localhost:16686>，服务名 `recruitment-web` / `recruitment-logic`。
+- 指标：Web <http://localhost:9464/metrics>，Logic <http://localhost:9465/metrics>。
+
+管理界面和指标端口默认只映射到本机。容器内的 OTLP 地址和指标监听地址由 Compose 覆盖；本地运行 Go 服务时，指标默认绑定 `127.0.0.1:9464` / `127.0.0.1:9465`，在进程环境或 `.env` 设置 `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317` 可接本地 Collector。若监控的是宿主机进程，需要将 Prometheus Targets 改为 `host.docker.internal:9464/9465`，并将 Go 管理端口绑定到 Docker 可访问的地址。示例全量采样，生产可降低 `OTEL_TRACES_SAMPLER_ARG`；采样只影响链路，不影响指标。
+
+| 指标 | 维度与含义 |
+|---|---|
+| `recruitment_operations_total` / `recruitment_operation_duration_seconds` | 通过 `operation` 区分 HTTP、gRPC、任务执行、模型、工具、上下文压缩、数据库、Redis、OSS；通过 `outcome` 区分结果。耗时为 Histogram，支持 P95/P99。 |
+| `recruitment_operations_inflight` | 各操作当前执行数，HTTP 带路由模板和方法。 |
+| `recruitment_task_active` / `recruitment_task_oldest_age_seconds` | MySQL 中 pending/retrying/running 的数量和最老创建时间距今秒数。后台每 15 秒刷新，采集回调不查询数据库。 |
+| `recruitment_task_stalled` | running 且开始执行超过 5 分钟的任务数。 |
+| `recruitment_task_snapshot_up` / `recruitment_task_snapshot_timestamp_seconds` | 数据库快照采集是否成功、最近成功时间；失败时不继续报告旧积压值。 |
+| `recruitment_task_redis_queue_length` / `recruitment_task_redis_up` | Redis 队列长度及最近一次探测结果，不能替代 MySQL 积压。 |
+| `recruitment_task_latency_seconds` | `phase=first_start` 为首次开始距离创建的等待时间，`end_to_end` 为终态落库距离创建的总时间。 |
+| `recruitment_ai_tokens_total` | provider 实际 usage，`kind=input/output/total`；缺失 usage 单独计事件，不把预算预留当实际消耗。汇总费用时只选 input/output 并乘以对应模型价格，避免与 total 重复相加。 |
+| `recruitment_ai_request_model_attempts` / `recruitment_agent_tool_calls` | 每次 AI 请求的模型尝试次数（包含压缩）与每次 Agent 运行的工具调用次数，均为 Histogram。 |
+| `recruitment_events_total` | `event` 包括任务重试/最终失败、入队和状态更新失败、Token/步数预算阻断、熔断拒绝、usage 缺失、AI JSON/分数异常、上下文降级和聊天幂等重放。 |
+| `recruitment_db_connections` / `recruitment_db_pool_waits_total` / `recruitment_db_pool_wait_duration_seconds_total` | 连接池状态、累计等待次数和时间。另有标准 `go_*` / `process_*` 指标。 |
+
+任务数据库快照是全局值，多副本按类型/状态取 `max`；操作 Counter 是进程内值，跨副本求和。任务执行、重试及终态事件按执行尝试计数，现有双 Worker 的调度和去重机制未重构，不能将事件 Counter 当成数据库中的唯一任务数。无效 AI JSON 会被计事件，沿用原有结果保存行为；观测到模型请求成功不代表结构化业务结果有效。
+
+HTTP 响应附带 `X-Trace-ID`；请求、任务和工具的结构化 `slog` 日志附带 `trace_id/span_id`。SQL 文本、参数、Redis key/value、OSS 对象名、提示词和模型回复不进入新增指标或 Span；任务 ID 仅作为 Span 属性，指标只使用有界标签。Grafana 的 Prometheus 数据源配置了 exemplar → Jaeger 跳转。日志仍输出到标准输出，未部署日志存储服务。
+
+示例告警覆盖服务采集失败、HTTP 5xx、任务等待/卡住、快照失效、Redis 不可用、AI 失败率及重试耗尽。阈值需要按业务时限调整；规则在 Prometheus 中展示，外部通知渠道需另行接入 Alertmanager。Prometheus 数据持久化 15 天，Jaeger 使用内存存储，重启会丢失链路。
+
+验证：分别在两个 Go 服务目录执行 `go test ./...`。新增测试覆盖进程内 HTTP → gRPC 上下文传播、路由标签归一化、panic 状态码、异步上下文恢复、GORM dry-run 埋点、日志关联、指标导出以及 Token/预算计数，不依赖真实数据库、模型或 Collector。
