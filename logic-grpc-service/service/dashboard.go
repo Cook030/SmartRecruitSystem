@@ -41,21 +41,37 @@ func (s *DashboardService) GetOverview(ctx context.Context, req *pb.DashboardOve
 	var resp pb.DashboardOverviewResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 2*time.Minute, func() (interface{}, error) {
 		totalJobs, err := s.repo.CountJobsByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		onlineJobs, err := s.repo.CountOnlineJobsByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		offlineJobs, err := s.repo.CountOfflineJobsByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		totalApplications, err := s.repo.CountApplicationsByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		totalCandidates, err := s.repo.CountCandidatesByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		completeProfiles, err := s.repo.CountCompleteProfilesByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		totalResumes, err := s.repo.CountResumesUploadedByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		totalChats, err := s.repo.CountChatsByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		return pb.DashboardOverviewResponse{TotalJobs: totalJobs, OnlineJobs: onlineJobs, OfflineJobs: offlineJobs, TotalApplications: totalApplications, TotalCandidates: totalCandidates, CompleteProfiles: completeProfiles, TotalResumes: totalResumes, TotalChats: totalChats}, nil
 	})
 	if err != nil {
@@ -72,11 +88,17 @@ func (s *DashboardService) GetHotJobs(ctx context.Context, req *pb.DashboardHotJ
 	var resp pb.DashboardHotJobsResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 5*time.Minute, func() (interface{}, error) {
 		items, err := s.repo.GetHotJobsByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		limit := int(req.Limit)
-		if limit <= 0 || limit > len(items) { limit = len(items) }
+		if limit <= 0 || limit > len(items) {
+			limit = len(items)
+		}
 		jobs := make([]*pb.HotJobItem, 0, limit)
-		for i := 0; i < limit; i++ { jobs = append(jobs, &pb.HotJobItem{JobId: items[i].JobID, Title: items[i].Title, Location: items[i].Location, Salary: items[i].Salary, ApplicationCount: items[i].ApplicationCount}) }
+		for i := 0; i < limit; i++ {
+			jobs = append(jobs, &pb.HotJobItem{JobId: items[i].JobID, Title: items[i].Title, Location: items[i].Location, Salary: items[i].Salary, ApplicationCount: items[i].ApplicationCount})
+		}
 		return pb.DashboardHotJobsResponse{Jobs: jobs}, nil
 	})
 	if err != nil {
@@ -93,19 +115,32 @@ func (s *DashboardService) GetHotSkills(ctx context.Context, req *pb.DashboardHo
 	var resp pb.DashboardHotSkillsResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 5*time.Minute, func() (interface{}, error) {
 		profiles, err := s.repo.GetAllCandidateProfilesWithSkillsByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		counts := map[string]int64{}
 		for _, p := range profiles {
 			for _, skill := range strings.Split(p.Skills, ",") {
 				skill = strings.TrimSpace(skill)
-				if skill != "" { counts[skill]++ }
+				if skill != "" {
+					counts[skill]++
+				}
 			}
 		}
 		items := make([]*pb.HotSkillItem, 0, len(counts))
-		for skill, count := range counts { items = append(items, &pb.HotSkillItem{Skill: skill, Count: count}) }
-		sort.Slice(items, func(i, j int) bool { if items[i].Count == items[j].Count { return items[i].Skill < items[j].Skill }; return items[i].Count > items[j].Count })
+		for skill, count := range counts {
+			items = append(items, &pb.HotSkillItem{Skill: skill, Count: count})
+		}
+		sort.Slice(items, func(i, j int) bool {
+			if items[i].Count == items[j].Count {
+				return items[i].Skill < items[j].Skill
+			}
+			return items[i].Count > items[j].Count
+		})
 		limit := int(req.Limit)
-		if limit <= 0 || limit > len(items) { limit = len(items) }
+		if limit <= 0 || limit > len(items) {
+			limit = len(items)
+		}
 		return pb.DashboardHotSkillsResponse{Skills: items[:limit]}, nil
 	})
 	if err != nil {
@@ -141,9 +176,13 @@ func (s *DashboardService) GetAIMatchStats(ctx context.Context, req *pb.Dashboar
 	var resp pb.DashboardAIMatchResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 2*time.Minute, func() (interface{}, error) {
 		totalChats, hrMessages, aiMessages, err := s.repo.CountChatMessagesByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		matchTasks, successTasks, failedTasks, avgScore, err := s.repo.CountAIMatchResultsByHrID(req.HrId)
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		return pb.DashboardAIMatchResponse{TotalChats: totalChats, HrMessages: hrMessages, AiMessages: aiMessages, MatchTasks: matchTasks, SuccessTasks: successTasks, FailedTasks: failedTasks, AverageScore: avgScore}, nil
 	})
 	if err != nil {
@@ -156,20 +195,21 @@ func (s *DashboardService) GetJobTrend(ctx context.Context, req *pb.DashboardTre
 	scoped := *s
 	scoped.repo = s.repo.WithContext(ctx)
 	s = &scoped
-	return s.getTrend(req.HrId, req.StartDate, req.EndDate, req.Range, true)
+	return s.getTrend(ctx, req.HrId, req.StartDate, req.EndDate, req.Range, true)
 }
 
 func (s *DashboardService) GetApplicationTrend(ctx context.Context, req *pb.DashboardTrendRequest) (*pb.DashboardTrendResponse, error) {
 	scoped := *s
 	scoped.repo = s.repo.WithContext(ctx)
 	s = &scoped
-	return s.getTrend(req.HrId, req.StartDate, req.EndDate, req.Range, false)
+	return s.getTrend(ctx, req.HrId, req.StartDate, req.EndDate, req.Range, false)
 }
 
-func (s *DashboardService) getTrend(hrID uint64, startDate, endDate, rng string, jobs bool) (*pb.DashboardTrendResponse, error) {
-	ctx := s.repo.DB.Statement.Context
+func (s *DashboardService) getTrend(ctx context.Context, hrID uint64, startDate, endDate, rng string, jobs bool) (*pb.DashboardTrendResponse, error) {
 	prefix := "job_trend"
-	if !jobs { prefix = "app_trend" }
+	if !jobs {
+		prefix = "app_trend"
+	}
 	key := fmt.Sprintf("dashboard:%s:%d:%s:%s:%s", prefix, hrID, startDate, endDate, rng)
 	var resp pb.DashboardTrendResponse
 	err := s.repo.CacheGet(ctx, key, &resp, 2*time.Minute, func() (interface{}, error) {
@@ -177,15 +217,25 @@ func (s *DashboardService) getTrend(hrID uint64, startDate, endDate, rng string,
 		points := map[string]int64{}
 		if jobs {
 			items, err := s.repo.GetJobsCreatedBetween(hrID, start, end)
-			if err != nil { return nil, err }
-			for _, item := range items { points[item.Date] += item.Count }
+			if err != nil {
+				return nil, err
+			}
+			for _, item := range items {
+				points[item.Date] += item.Count
+			}
 		} else {
 			items, err := s.repo.GetApplicationsCreatedBetween(hrID, start, end)
-			if err != nil { return nil, err }
-			for _, item := range items { points[item.Date] += item.Count }
+			if err != nil {
+				return nil, err
+			}
+			for _, item := range items {
+				points[item.Date] += item.Count
+			}
 		}
 		out := make([]*pb.TrendPoint, 0, len(points))
-		for date, count := range points { out = append(out, &pb.TrendPoint{Date: date, Count: count}) }
+		for date, count := range points {
+			out = append(out, &pb.TrendPoint{Date: date, Count: count})
+		}
 		sort.Slice(out, func(i, j int) bool { return out[i].Date < out[j].Date })
 		return pb.DashboardTrendResponse{Points: out}, nil
 	})
@@ -200,13 +250,15 @@ func parseRange(startDate, endDate, rng string) (time.Time, time.Time) {
 	if startDate != "" && endDate != "" {
 		start, _ := time.ParseInLocation(layout, startDate, time.Local)
 		end, _ := time.ParseInLocation(layout, endDate, time.Local)
-		return start, end.Add(23 * time.Hour + 59 * time.Minute + 59 * time.Second)
+		return start, end.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 	}
 	now := time.Now()
 	switch rng {
-	case "year": return now.AddDate(-1, 0, 0), now
-	case "month": return now.AddDate(0, -1, 0), now
-	default: return now.AddDate(0, 0, -7), now
+	case "year":
+		return now.AddDate(-1, 0, 0), now
+	case "month":
+		return now.AddDate(0, -1, 0), now
+	default:
+		return now.AddDate(0, 0, -7), now
 	}
 }
-

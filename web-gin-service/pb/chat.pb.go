@@ -704,7 +704,7 @@ const file_chat_proto_rawDesc = "" +
 	"\x0eGetChatHistory\x12\x1e.recruit.GetChatHistoryRequest\x1a\x1f.recruit.GetChatHistoryResponse\x12W\n" +
 	"\x12CreateConversation\x12\".recruit.CreateConversationRequest\x1a\x1d.recruit.ChatConversationInfo\x12Z\n" +
 	"\x11ListConversations\x12!.recruit.ListConversationsRequest\x1a\".recruit.ListConversationsResponse\x12]\n" +
-	"\x12DeleteConversation\x12\".recruit.DeleteConversationRequest\x1a#.recruit.DeleteConversationResponseB\x14Z\x12web-gin-service/pbb\x06proto3"
+	"\x12DeleteConversation\x12\".recruit.DeleteConversationRequest\x1a#.recruit.DeleteConversationResponseB\x17Z\x15logic-grpc-service/pbb\x06proto3"
 
 var (
 	file_chat_proto_rawDescOnce sync.Once

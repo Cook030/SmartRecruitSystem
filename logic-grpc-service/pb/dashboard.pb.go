@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v5.29.3
-// source: proto/dashboard.proto
+// source: dashboard.proto
 
 package pb
 
@@ -31,7 +31,7 @@ type DashboardOverviewRequest struct {
 
 func (x *DashboardOverviewRequest) Reset() {
 	*x = DashboardOverviewRequest{}
-	mi := &file_proto_dashboard_proto_msgTypes[0]
+	mi := &file_dashboard_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *DashboardOverviewRequest) String() string {
 func (*DashboardOverviewRequest) ProtoMessage() {}
 
 func (x *DashboardOverviewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[0]
+	mi := &file_dashboard_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *DashboardOverviewRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardOverviewRequest.ProtoReflect.Descriptor instead.
 func (*DashboardOverviewRequest) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{0}
+	return file_dashboard_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *DashboardOverviewRequest) GetHrId() uint64 {
@@ -83,7 +83,7 @@ type DashboardOverviewResponse struct {
 
 func (x *DashboardOverviewResponse) Reset() {
 	*x = DashboardOverviewResponse{}
-	mi := &file_proto_dashboard_proto_msgTypes[1]
+	mi := &file_dashboard_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -95,7 +95,7 @@ func (x *DashboardOverviewResponse) String() string {
 func (*DashboardOverviewResponse) ProtoMessage() {}
 
 func (x *DashboardOverviewResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[1]
+	mi := &file_dashboard_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -108,7 +108,7 @@ func (x *DashboardOverviewResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardOverviewResponse.ProtoReflect.Descriptor instead.
 func (*DashboardOverviewResponse) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{1}
+	return file_dashboard_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *DashboardOverviewResponse) GetTotalJobs() int64 {
@@ -180,7 +180,7 @@ type DashboardTrendRequest struct {
 
 func (x *DashboardTrendRequest) Reset() {
 	*x = DashboardTrendRequest{}
-	mi := &file_proto_dashboard_proto_msgTypes[2]
+	mi := &file_dashboard_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -192,7 +192,7 @@ func (x *DashboardTrendRequest) String() string {
 func (*DashboardTrendRequest) ProtoMessage() {}
 
 func (x *DashboardTrendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[2]
+	mi := &file_dashboard_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -205,7 +205,7 @@ func (x *DashboardTrendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardTrendRequest.ProtoReflect.Descriptor instead.
 func (*DashboardTrendRequest) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{2}
+	return file_dashboard_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DashboardTrendRequest) GetHrId() uint64 {
@@ -246,7 +246,7 @@ type DashboardTrendResponse struct {
 
 func (x *DashboardTrendResponse) Reset() {
 	*x = DashboardTrendResponse{}
-	mi := &file_proto_dashboard_proto_msgTypes[3]
+	mi := &file_dashboard_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +258,7 @@ func (x *DashboardTrendResponse) String() string {
 func (*DashboardTrendResponse) ProtoMessage() {}
 
 func (x *DashboardTrendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[3]
+	mi := &file_dashboard_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +271,7 @@ func (x *DashboardTrendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardTrendResponse.ProtoReflect.Descriptor instead.
 func (*DashboardTrendResponse) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{3}
+	return file_dashboard_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DashboardTrendResponse) GetPoints() []*TrendPoint {
@@ -291,7 +291,7 @@ type TrendPoint struct {
 
 func (x *TrendPoint) Reset() {
 	*x = TrendPoint{}
-	mi := &file_proto_dashboard_proto_msgTypes[4]
+	mi := &file_dashboard_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -303,7 +303,7 @@ func (x *TrendPoint) String() string {
 func (*TrendPoint) ProtoMessage() {}
 
 func (x *TrendPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[4]
+	mi := &file_dashboard_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -316,7 +316,7 @@ func (x *TrendPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrendPoint.ProtoReflect.Descriptor instead.
 func (*TrendPoint) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{4}
+	return file_dashboard_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TrendPoint) GetDate() string {
@@ -343,7 +343,7 @@ type DashboardHotJobsRequest struct {
 
 func (x *DashboardHotJobsRequest) Reset() {
 	*x = DashboardHotJobsRequest{}
-	mi := &file_proto_dashboard_proto_msgTypes[5]
+	mi := &file_dashboard_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -355,7 +355,7 @@ func (x *DashboardHotJobsRequest) String() string {
 func (*DashboardHotJobsRequest) ProtoMessage() {}
 
 func (x *DashboardHotJobsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[5]
+	mi := &file_dashboard_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -368,7 +368,7 @@ func (x *DashboardHotJobsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardHotJobsRequest.ProtoReflect.Descriptor instead.
 func (*DashboardHotJobsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{5}
+	return file_dashboard_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DashboardHotJobsRequest) GetHrId() uint64 {
@@ -394,7 +394,7 @@ type DashboardHotJobsResponse struct {
 
 func (x *DashboardHotJobsResponse) Reset() {
 	*x = DashboardHotJobsResponse{}
-	mi := &file_proto_dashboard_proto_msgTypes[6]
+	mi := &file_dashboard_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -406,7 +406,7 @@ func (x *DashboardHotJobsResponse) String() string {
 func (*DashboardHotJobsResponse) ProtoMessage() {}
 
 func (x *DashboardHotJobsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[6]
+	mi := &file_dashboard_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -419,7 +419,7 @@ func (x *DashboardHotJobsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardHotJobsResponse.ProtoReflect.Descriptor instead.
 func (*DashboardHotJobsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{6}
+	return file_dashboard_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DashboardHotJobsResponse) GetJobs() []*HotJobItem {
@@ -442,7 +442,7 @@ type HotJobItem struct {
 
 func (x *HotJobItem) Reset() {
 	*x = HotJobItem{}
-	mi := &file_proto_dashboard_proto_msgTypes[7]
+	mi := &file_dashboard_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -454,7 +454,7 @@ func (x *HotJobItem) String() string {
 func (*HotJobItem) ProtoMessage() {}
 
 func (x *HotJobItem) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[7]
+	mi := &file_dashboard_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -467,7 +467,7 @@ func (x *HotJobItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HotJobItem.ProtoReflect.Descriptor instead.
 func (*HotJobItem) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{7}
+	return file_dashboard_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *HotJobItem) GetJobId() uint64 {
@@ -515,7 +515,7 @@ type DashboardHotSkillsRequest struct {
 
 func (x *DashboardHotSkillsRequest) Reset() {
 	*x = DashboardHotSkillsRequest{}
-	mi := &file_proto_dashboard_proto_msgTypes[8]
+	mi := &file_dashboard_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -527,7 +527,7 @@ func (x *DashboardHotSkillsRequest) String() string {
 func (*DashboardHotSkillsRequest) ProtoMessage() {}
 
 func (x *DashboardHotSkillsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[8]
+	mi := &file_dashboard_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -540,7 +540,7 @@ func (x *DashboardHotSkillsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardHotSkillsRequest.ProtoReflect.Descriptor instead.
 func (*DashboardHotSkillsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{8}
+	return file_dashboard_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DashboardHotSkillsRequest) GetHrId() uint64 {
@@ -566,7 +566,7 @@ type DashboardHotSkillsResponse struct {
 
 func (x *DashboardHotSkillsResponse) Reset() {
 	*x = DashboardHotSkillsResponse{}
-	mi := &file_proto_dashboard_proto_msgTypes[9]
+	mi := &file_dashboard_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -578,7 +578,7 @@ func (x *DashboardHotSkillsResponse) String() string {
 func (*DashboardHotSkillsResponse) ProtoMessage() {}
 
 func (x *DashboardHotSkillsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[9]
+	mi := &file_dashboard_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -591,7 +591,7 @@ func (x *DashboardHotSkillsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardHotSkillsResponse.ProtoReflect.Descriptor instead.
 func (*DashboardHotSkillsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{9}
+	return file_dashboard_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DashboardHotSkillsResponse) GetSkills() []*HotSkillItem {
@@ -611,7 +611,7 @@ type HotSkillItem struct {
 
 func (x *HotSkillItem) Reset() {
 	*x = HotSkillItem{}
-	mi := &file_proto_dashboard_proto_msgTypes[10]
+	mi := &file_dashboard_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -623,7 +623,7 @@ func (x *HotSkillItem) String() string {
 func (*HotSkillItem) ProtoMessage() {}
 
 func (x *HotSkillItem) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[10]
+	mi := &file_dashboard_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -636,7 +636,7 @@ func (x *HotSkillItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HotSkillItem.ProtoReflect.Descriptor instead.
 func (*HotSkillItem) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{10}
+	return file_dashboard_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *HotSkillItem) GetSkill() string {
@@ -662,7 +662,7 @@ type DashboardFunnelRequest struct {
 
 func (x *DashboardFunnelRequest) Reset() {
 	*x = DashboardFunnelRequest{}
-	mi := &file_proto_dashboard_proto_msgTypes[11]
+	mi := &file_dashboard_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -674,7 +674,7 @@ func (x *DashboardFunnelRequest) String() string {
 func (*DashboardFunnelRequest) ProtoMessage() {}
 
 func (x *DashboardFunnelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[11]
+	mi := &file_dashboard_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -687,7 +687,7 @@ func (x *DashboardFunnelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardFunnelRequest.ProtoReflect.Descriptor instead.
 func (*DashboardFunnelRequest) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{11}
+	return file_dashboard_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DashboardFunnelRequest) GetHrId() uint64 {
@@ -709,7 +709,7 @@ type DashboardFunnelResponse struct {
 
 func (x *DashboardFunnelResponse) Reset() {
 	*x = DashboardFunnelResponse{}
-	mi := &file_proto_dashboard_proto_msgTypes[12]
+	mi := &file_dashboard_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -721,7 +721,7 @@ func (x *DashboardFunnelResponse) String() string {
 func (*DashboardFunnelResponse) ProtoMessage() {}
 
 func (x *DashboardFunnelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[12]
+	mi := &file_dashboard_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -734,7 +734,7 @@ func (x *DashboardFunnelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardFunnelResponse.ProtoReflect.Descriptor instead.
 func (*DashboardFunnelResponse) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{12}
+	return file_dashboard_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DashboardFunnelResponse) GetRegistered() int64 {
@@ -774,7 +774,7 @@ type DashboardAIMatchRequest struct {
 
 func (x *DashboardAIMatchRequest) Reset() {
 	*x = DashboardAIMatchRequest{}
-	mi := &file_proto_dashboard_proto_msgTypes[13]
+	mi := &file_dashboard_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -786,7 +786,7 @@ func (x *DashboardAIMatchRequest) String() string {
 func (*DashboardAIMatchRequest) ProtoMessage() {}
 
 func (x *DashboardAIMatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[13]
+	mi := &file_dashboard_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -799,7 +799,7 @@ func (x *DashboardAIMatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardAIMatchRequest.ProtoReflect.Descriptor instead.
 func (*DashboardAIMatchRequest) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{13}
+	return file_dashboard_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DashboardAIMatchRequest) GetHrId() uint64 {
@@ -824,7 +824,7 @@ type DashboardAIMatchResponse struct {
 
 func (x *DashboardAIMatchResponse) Reset() {
 	*x = DashboardAIMatchResponse{}
-	mi := &file_proto_dashboard_proto_msgTypes[14]
+	mi := &file_dashboard_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -836,7 +836,7 @@ func (x *DashboardAIMatchResponse) String() string {
 func (*DashboardAIMatchResponse) ProtoMessage() {}
 
 func (x *DashboardAIMatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_dashboard_proto_msgTypes[14]
+	mi := &file_dashboard_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -849,7 +849,7 @@ func (x *DashboardAIMatchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardAIMatchResponse.ProtoReflect.Descriptor instead.
 func (*DashboardAIMatchResponse) Descriptor() ([]byte, []int) {
-	return file_proto_dashboard_proto_rawDescGZIP(), []int{14}
+	return file_dashboard_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DashboardAIMatchResponse) GetTotalChats() int64 {
@@ -901,11 +901,11 @@ func (x *DashboardAIMatchResponse) GetAverageScore() float64 {
 	return 0
 }
 
-var File_proto_dashboard_proto protoreflect.FileDescriptor
+var File_dashboard_proto protoreflect.FileDescriptor
 
-const file_proto_dashboard_proto_rawDesc = "" +
+const file_dashboard_proto_rawDesc = "" +
 	"\n" +
-	"\x15proto/dashboard.proto\x12\arecruit\"/\n" +
+	"\x0fdashboard.proto\x12\arecruit\"/\n" +
 	"\x18DashboardOverviewRequest\x12\x13\n" +
 	"\x05hr_id\x18\x01 \x01(\x04R\x04hrId\"\xcb\x02\n" +
 	"\x19DashboardOverviewResponse\x12\x1d\n" +
@@ -986,19 +986,19 @@ const file_proto_dashboard_proto_rawDesc = "" +
 	"\x0fGetAIMatchStats\x12 .recruit.DashboardAIMatchRequest\x1a!.recruit.DashboardAIMatchResponseB\x17Z\x15logic-grpc-service/pbb\x06proto3"
 
 var (
-	file_proto_dashboard_proto_rawDescOnce sync.Once
-	file_proto_dashboard_proto_rawDescData []byte
+	file_dashboard_proto_rawDescOnce sync.Once
+	file_dashboard_proto_rawDescData []byte
 )
 
-func file_proto_dashboard_proto_rawDescGZIP() []byte {
-	file_proto_dashboard_proto_rawDescOnce.Do(func() {
-		file_proto_dashboard_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_dashboard_proto_rawDesc), len(file_proto_dashboard_proto_rawDesc)))
+func file_dashboard_proto_rawDescGZIP() []byte {
+	file_dashboard_proto_rawDescOnce.Do(func() {
+		file_dashboard_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_dashboard_proto_rawDesc), len(file_dashboard_proto_rawDesc)))
 	})
-	return file_proto_dashboard_proto_rawDescData
+	return file_dashboard_proto_rawDescData
 }
 
-var file_proto_dashboard_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
-var file_proto_dashboard_proto_goTypes = []any{
+var file_dashboard_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_dashboard_proto_goTypes = []any{
 	(*DashboardOverviewRequest)(nil),   // 0: recruit.DashboardOverviewRequest
 	(*DashboardOverviewResponse)(nil),  // 1: recruit.DashboardOverviewResponse
 	(*DashboardTrendRequest)(nil),      // 2: recruit.DashboardTrendRequest
@@ -1015,7 +1015,7 @@ var file_proto_dashboard_proto_goTypes = []any{
 	(*DashboardAIMatchRequest)(nil),    // 13: recruit.DashboardAIMatchRequest
 	(*DashboardAIMatchResponse)(nil),   // 14: recruit.DashboardAIMatchResponse
 }
-var file_proto_dashboard_proto_depIdxs = []int32{
+var file_dashboard_proto_depIdxs = []int32{
 	4,  // 0: recruit.DashboardTrendResponse.points:type_name -> recruit.TrendPoint
 	7,  // 1: recruit.DashboardHotJobsResponse.jobs:type_name -> recruit.HotJobItem
 	10, // 2: recruit.DashboardHotSkillsResponse.skills:type_name -> recruit.HotSkillItem
@@ -1040,26 +1040,26 @@ var file_proto_dashboard_proto_depIdxs = []int32{
 	0,  // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_proto_dashboard_proto_init() }
-func file_proto_dashboard_proto_init() {
-	if File_proto_dashboard_proto != nil {
+func init() { file_dashboard_proto_init() }
+func file_dashboard_proto_init() {
+	if File_dashboard_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_dashboard_proto_rawDesc), len(file_proto_dashboard_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_dashboard_proto_rawDesc), len(file_dashboard_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_dashboard_proto_goTypes,
-		DependencyIndexes: file_proto_dashboard_proto_depIdxs,
-		MessageInfos:      file_proto_dashboard_proto_msgTypes,
+		GoTypes:           file_dashboard_proto_goTypes,
+		DependencyIndexes: file_dashboard_proto_depIdxs,
+		MessageInfos:      file_dashboard_proto_msgTypes,
 	}.Build()
-	File_proto_dashboard_proto = out.File
-	file_proto_dashboard_proto_goTypes = nil
-	file_proto_dashboard_proto_depIdxs = nil
+	File_dashboard_proto = out.File
+	file_dashboard_proto_goTypes = nil
+	file_dashboard_proto_depIdxs = nil
 }

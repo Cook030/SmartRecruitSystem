@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	ErrChatBusy           = errors.New("conversation has an active request")
-	ErrChatConflict       = errors.New("request ID was already used for different content or conversation")
-	ErrChatAttemptExpired = errors.New("chat generation lease expired")
+	ErrChatSummaryConflict = errors.New("conversation summary version changed")
+	ErrChatBusy            = errors.New("conversation has an active request")
+	ErrChatConflict        = errors.New("request ID was already used for different content or conversation")
+	ErrChatAttemptExpired  = errors.New("chat generation lease expired")
 )
 
 func (r *Repository) CreateChatConversation(ctx context.Context, hrID uint64, title string) (*model.ChatConversation, error) {
@@ -119,7 +120,7 @@ func (r *Repository) CompleteChatRequest(ctx context.Context, request *model.Cha
 		values := map[string]any{"updated_at": time.Now()}
 		if update != nil {
 			if update.Version == 0 || update.Handoff == nil {
-				return ErrChatConflict
+				return ErrChatSummaryConflict
 			}
 			raw := update.Handoff.JSON()
 			if _, err := chatcontext.ParseHandoff(raw); err != nil {
@@ -133,7 +134,7 @@ func (r *Repository) CompleteChatRequest(ctx context.Context, request *model.Cha
 			return result.Error
 		}
 		if update != nil && result.RowsAffected != 1 {
-			return ErrChatConflict
+			return ErrChatSummaryConflict
 		}
 		return nil
 	})

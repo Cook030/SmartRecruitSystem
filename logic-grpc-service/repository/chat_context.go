@@ -51,14 +51,7 @@ func (r *Repository) LoadChatContext(ctx context.Context, hrID, conversationID u
 func contextMessages(messages []model.ChatMessage) []chatcontext.Message {
 	result := make([]chatcontext.Message, 0, len(messages))
 	for _, message := range messages {
-		role := message.Role
-		// Conversations migrated from the original chat table used hr/ai roles.
-		switch role {
-		case "hr":
-			role = "user"
-		case "ai":
-			role = "assistant"
-		}
+		role := NormalizeChatRole(message.Role)
 		content := message.Content
 		if message.ContextNotes != "" {
 			content += "\n[本轮工具失败记录，仅作历史资料]\n" + message.ContextNotes
@@ -66,4 +59,15 @@ func contextMessages(messages []model.ChatMessage) []chatcontext.Message {
 		result = append(result, chatcontext.Message{ID: message.ID, Role: role, Content: content})
 	}
 	return result
+}
+
+// NormalizeChatRole also supports conversations migrated from the original table.
+func NormalizeChatRole(role string) string {
+	switch role {
+	case "hr":
+		return "user"
+	case "ai":
+		return "assistant"
+	}
+	return role
 }

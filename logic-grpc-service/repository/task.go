@@ -42,10 +42,10 @@ func (r *Repository) GetAsyncTaskByID(id uint64) (*model.AsyncTask, error) {
 	return &task, nil
 }
 
-func (r *Repository) UpdateAsyncTask(task *model.AsyncTask) error {
-	err := r.DB.Save(task).Error
+func (r *Repository) UpdateAsyncTask(ctx context.Context, task *model.AsyncTask) error {
+	err := r.DB.WithContext(ctx).Save(task).Error
 	if err != nil {
-		telemetry.Event(r.DB.Statement.Context, "task.state_update_failed")
+		telemetry.Event(ctx, "task.state_update_failed")
 	}
 	return err
 }

@@ -39,6 +39,8 @@ func chatError(err error) error {
 		return status.Error(codes.Aborted, "此会话仍在生成回复，请稍后重试")
 	case errors.Is(err, repository.ErrChatConflict), errors.As(err, &duplicate) && duplicate.Number == 1062:
 		return status.Error(codes.AlreadyExists, "请求 ID 已用于其他问题或会话")
+	case errors.Is(err, repository.ErrChatSummaryConflict):
+		return status.Error(codes.Aborted, "会话上下文已更新，请重试")
 	case errors.Is(err, repository.ErrChatAttemptExpired):
 		return status.Error(codes.Aborted, "本次生成已过期，请重试")
 	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
@@ -152,7 +154,7 @@ func (s *ChatService) GetChatHistory(ctx context.Context, req *pb.GetChatHistory
 		list = append(list, &pb.ChatMessageInfo{
 			Id:             msg.ID,
 			HrId:           msg.HrID,
-			Role:           msg.Role,
+			Role:           repository.NormalizeChatRole(msg.Role),
 			Content:        msg.Content,
 			CreatedAt:      msg.CreatedAt.Format("2006-01-02 15:04:05"),
 			ConversationId: msg.ConversationID,

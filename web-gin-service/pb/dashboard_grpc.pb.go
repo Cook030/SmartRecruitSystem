@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v5.29.3
-// source: proto/dashboard.proto
+// source: dashboard.proto
 
 package pb
 
@@ -363,5 +363,5 @@ var DashboardService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/dashboard.proto",
+	Metadata: "dashboard.proto",
 }

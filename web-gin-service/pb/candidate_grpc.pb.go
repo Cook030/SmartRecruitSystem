@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v5.29.3
-// source: proto/candidate.proto
+// source: candidate.proto
 
 package pb
 
@@ -34,7 +34,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// CandidateService 处理候选人资料、简历、投递
+// CandidateService 处理候选人资料、简历、投递。
 type CandidateServiceClient interface {
 	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
@@ -149,7 +149,7 @@ func (c *candidateServiceClient) GetApplicationDetail(ctx context.Context, in *G
 // All implementations must embed UnimplementedCandidateServiceServer
 // for forward compatibility.
 //
-// CandidateService 处理候选人资料、简历、投递
+// CandidateService 处理候选人资料、简历、投递。
 type CandidateServiceServer interface {
 	GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error)
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)
@@ -425,5 +425,5 @@ var CandidateService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/candidate.proto",
+	Metadata: "candidate.proto",
 }

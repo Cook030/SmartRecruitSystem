@@ -290,7 +290,7 @@ func (s *TaskService) processTask(task *model.AsyncTask) {
 	now := time.Now()
 	task.Status = "running"
 	task.StartedAt = &now
-	if err := s.repo.UpdateAsyncTask(task); err != nil {
+	if err := s.repo.UpdateAsyncTask(ctx, task); err != nil {
 		outcome = "state_update_failed"
 		return
 	}
@@ -298,13 +298,13 @@ func (s *TaskService) processTask(task *model.AsyncTask) {
 	var taskErr error
 	switch task.TaskType {
 	case "resume_parse":
-		taskErr = s.processResumeParse(task)
+		taskErr = s.processResumeParse(ctx, task)
 	case "ai_match":
-		taskErr = s.processAIMatch(task)
+		taskErr = s.processAIMatch(ctx, task)
 	case "stats_refresh":
-		taskErr = s.processStatsRefresh(task)
+		taskErr = s.processStatsRefresh(ctx, task)
 	case "notification":
-		taskErr = s.processNotification(task)
+		taskErr = s.processNotification(ctx, task)
 	default:
 		taskErr = fmt.Errorf("unknown task type: %s", task.TaskType)
 	}
@@ -328,7 +328,7 @@ func (s *TaskService) processTask(task *model.AsyncTask) {
 	// A shutdown cancels dependency calls but must still persist the retry state.
 	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 	defer cancel()
-	if err := s.repo.WithContext(cleanup).UpdateAsyncTask(task); err != nil {
+	if err := s.repo.UpdateAsyncTask(cleanup, task); err != nil {
 		outcome = "state_update_failed"
 		return
 	}
@@ -339,7 +339,7 @@ func (s *TaskService) processTask(task *model.AsyncTask) {
 	}
 }
 
-func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
+func (s *TaskService) processResumeParse(ctx context.Context, task *model.AsyncTask) error {
 	var params struct {
 		ResumeID    uint64 `json:"resume_id"`
 		CandidateID uint64 `json:"candidate_id"`
@@ -354,7 +354,7 @@ func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
 		return fmt.Errorf("resume not found: %v", err)
 	}
 
-	fileData, err := oss.DownloadFile(s.repo.DB.Statement.Context, s.cfg, resume.OssKey)
+	fileData, err := oss.DownloadFile(ctx, s.cfg, resume.OssKey)
 	if err != nil {
 		return fmt.Errorf("failed to download resume from OSS: %w", err)
 	}
@@ -390,7 +390,7 @@ func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
 
 	prompt := fmt.Sprintf("请解析以下简历信息，提取教育经历、工作经历、项目经历和技能标签，以JSON格式返回：{\"education\":\"\",\"experience\":\"\",\"projects\":\"\",\"skills\":\"\"}\n\n简历内容：%s", textContent)
 
-	aiResp, err := ai.CallAI(s.repo.DB.Statement.Context, s.cfg, prompt)
+	aiResp, err := ai.CallAI(ctx, s.cfg, prompt)
 	if err != nil {
 		return fmt.Errorf("AI call failed: %w", err)
 	}
@@ -413,14 +413,14 @@ func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
 		result.Projects = parsed.Projects
 		result.Skills = parsed.Skills
 	} else {
-		telemetry.Event(s.repo.DB.Statement.Context, "ai.invalid_json", attribute.String("task_type", "resume_parse"))
+		telemetry.Event(ctx, "ai.invalid_json", attribute.String("task_type", "resume_parse"))
 	}
 
 	if err := s.repo.SaveResumeParseResult(result); err != nil {
 		return err
 	}
 
-	s.repo.CacheDel(s.repo.DB.Statement.Context, fmt.Sprintf("ai:resume_parse:%d", params.ResumeID))
+	s.repo.CacheDel(ctx, fmt.Sprintf("ai:resume_parse:%d", params.ResumeID))
 
 	parseResult := map[string]interface{}{
 		"resume_id":  params.ResumeID,
@@ -438,7 +438,7 @@ func (s *TaskService) processResumeParse(task *model.AsyncTask) error {
 	return nil
 }
 
-func (s *TaskService) processAIMatch(task *model.AsyncTask) error {
+func (s *TaskService) processAIMatch(ctx context.Context, task *model.AsyncTask) error {
 	var params struct {
 		ApplicationID uint64 `json:"application_id"`
 		HrID          uint64 `json:"hr_id"`
@@ -469,7 +469,7 @@ func (s *TaskService) processAIMatch(task *model.AsyncTask) error {
 岗位要求：%s
 候选人信息：%s`, job.Requirement, candidateInfo)
 
-	aiResp, err := ai.CallAI(s.repo.DB.Statement.Context, s.cfg, prompt)
+	aiResp, err := ai.CallAI(ctx, s.cfg, prompt)
 	if err != nil {
 		return fmt.Errorf("AI call failed: %w", err)
 	}
@@ -495,22 +495,22 @@ func (s *TaskService) processAIMatch(task *model.AsyncTask) error {
 		result.Weaknesses = parsed.Weaknesses
 		result.InterviewTips = parsed.InterviewTips
 	} else {
-		telemetry.Event(s.repo.DB.Statement.Context, "ai.invalid_json", attribute.String("task_type", "ai_match"))
+		telemetry.Event(ctx, "ai.invalid_json", attribute.String("task_type", "ai_match"))
 	}
 	if parsed.MatchScore < 0 || parsed.MatchScore > 100 {
-		telemetry.Event(s.repo.DB.Statement.Context, "ai.invalid_score")
+		telemetry.Event(ctx, "ai.invalid_score")
 	}
 
 	if err := s.repo.SaveAIMatchResult(result); err != nil {
 		return err
 	}
 
-	s.repo.CacheDel(s.repo.DB.Statement.Context, fmt.Sprintf("ai:job_match:%d:%d", job.ID, application.CandidateID))
+	s.repo.CacheDel(ctx, fmt.Sprintf("ai:job_match:%d:%d", job.ID, application.CandidateID))
 	task.Result = fmt.Sprintf(`{"application_id":%d,"match_score":%.1f}`, params.ApplicationID, result.MatchScore)
 	return nil
 }
 
-func (s *TaskService) processStatsRefresh(task *model.AsyncTask) error {
+func (s *TaskService) processStatsRefresh(ctx context.Context, task *model.AsyncTask) error {
 	var params struct {
 		HrID uint64 `json:"hr_id"`
 	}
@@ -531,15 +531,15 @@ func (s *TaskService) processStatsRefresh(task *model.AsyncTask) error {
 		s.repo.SaveDashboardStat(params.HrID, k, string(val))
 	}
 
-	s.repo.CacheDelByPrefix(s.repo.DB.Statement.Context, fmt.Sprintf("stats:hot_jobs:%d:", params.HrID))
-	s.repo.CacheDelByPrefix(s.repo.DB.Statement.Context, "stats:hot_skills:")
+	s.repo.CacheDelByPrefix(ctx, fmt.Sprintf("stats:hot_jobs:%d:", params.HrID))
+	s.repo.CacheDelByPrefix(ctx, "stats:hot_skills:")
 
 	resultJSON, _ := json.Marshal(stats)
 	task.Result = string(resultJSON)
 	return nil
 }
 
-func (s *TaskService) processNotification(task *model.AsyncTask) error {
+func (s *TaskService) processNotification(ctx context.Context, task *model.AsyncTask) error {
 	var params struct {
 		UserID   uint64 `json:"user_id"`
 		UserRole string `json:"user_role"`

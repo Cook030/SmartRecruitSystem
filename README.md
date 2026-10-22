@@ -120,19 +120,13 @@ npm run dev
 
 ## Proto 文件重新生成（如有修改）
 
-```bash
-cd logic-grpc-service
-protoc --proto_path=proto \
-  --go_out=pb --go_opt=module=logic-grpc-service/pb \
-  --go-grpc_out=pb --go-grpc_opt=module=logic-grpc-service/pb \
-  proto/*.proto
+只维护 `logic-grpc-service/proto`。将 `protoc`、`protoc-gen-go`、`protoc-gen-go-grpc` 加入 PATH，在项目根目录一次生成两侧 `pb`，并将生成结果一起提交：
 
-cd ../web-gin-service
-protoc --proto_path=proto \
-  --go_out=pb --go_opt=module=web-gin-service/pb \
-  --go-grpc_out=pb --go-grpc_opt=module=web-gin-service/pb \
-  proto/*.proto
+```powershell
+./deploy/generate-proto.ps1
 ```
+
+Linux/macOS 使用 PowerShell 7：`pwsh -File ./deploy/generate-proto.ps1`。
 
 ## 功能说明
 

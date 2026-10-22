@@ -21,6 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// JobInfo 是岗位详情的统一返回结构。
 type JobInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -137,6 +138,7 @@ func (x *JobInfo) GetUpdatedAt() string {
 	return ""
 }
 
+// CreateJobRequest 创建岗位所需参数。
 type CreateJobRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	HrId          uint64                 `protobuf:"varint,1,opt,name=hr_id,json=hrId,proto3" json:"hr_id,omitempty"`
