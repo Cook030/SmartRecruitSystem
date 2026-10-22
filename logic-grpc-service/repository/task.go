@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -28,7 +29,7 @@ func (r *Repository) CreateAndQueueTask(ctx context.Context, task *model.AsyncTa
 	if r.Redis.Available() {
 		if err := r.Redis.LPush(ctx, "task:queue", fmt.Sprintf("%d", task.ID)); err != nil {
 			telemetry.Event(ctx, "task.enqueue_failed")
-			fmt.Printf("failed to push task %d to redis queue: %v\n", task.ID, err)
+			slog.WarnContext(ctx, "failed to push task to Redis queue", "task_id", task.ID, "error", err)
 		}
 	}
 	return nil

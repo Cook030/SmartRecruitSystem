@@ -27,18 +27,28 @@ func (r *Repository) StartTaskMetrics(parent context.Context) (func(), error) {
 	stalled, _ := m.Int64ObservableGauge("recruitment.task.stalled")
 	queue, _ := m.Int64ObservableGauge("recruitment.task.redis.queue.length")
 	up, _ := m.Int64ObservableGauge("recruitment.task.snapshot.up")
+	redisEnabled, _ := m.Int64ObservableGauge("recruitment.task.redis.enabled")
 	redisUp, _ := m.Int64ObservableGauge("recruitment.task.redis.up")
 	updated, _ := m.Float64ObservableGauge("recruitment.task.snapshot.timestamp", metric.WithUnit("s"))
 	var mu sync.Mutex
 	var rows []taskMetricRow
 	var healthy, redisHealthy, length int64
 	var timestamp float64
+	var initialized bool
 	ctx, cancel := context.WithCancel(parent)
 	reg, err := m.RegisterCallback(func(_ context.Context, o metric.Observer) error {
 		mu.Lock()
 		defer mu.Unlock()
+		if !initialized {
+			return nil
+		}
 		o.ObserveInt64(up, healthy)
 		o.ObserveInt64(redisUp, redisHealthy)
+		enabled := int64(0)
+		if r.Redis.Available() {
+			enabled = 1
+		}
+		o.ObserveInt64(redisEnabled, enabled)
 		o.ObserveFloat64(updated, timestamp)
 		if redisHealthy == 1 {
 			o.ObserveInt64(queue, length)
@@ -57,7 +67,7 @@ func (r *Repository) StartTaskMetrics(parent context.Context) (func(), error) {
 			o.ObserveInt64(stalled, row.Stalled, attrs)
 		}
 		return nil
-	}, count, oldest, stalled, queue, up, redisUp, updated)
+	}, count, oldest, stalled, queue, up, redisUp, redisEnabled, updated)
 	if err != nil {
 		cancel()
 		return nil, err
@@ -84,6 +94,7 @@ func (r *Repository) StartTaskMetrics(parent context.Context) (func(), error) {
 			}
 			stop()
 			mu.Lock()
+			initialized = true
 			healthy = 0
 			if err == nil {
 				healthy, timestamp = 1, float64(time.Now().Unix())

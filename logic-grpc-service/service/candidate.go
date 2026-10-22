@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -104,7 +105,7 @@ func (s *CandidateService) UploadResume(ctx context.Context, req *pb.UploadResum
 		MaxRetries: 3,
 	}
 	if err := s.repo.CreateAndQueueTask(ctx, task); err != nil {
-		fmt.Printf("failed to create resume parse task: %v\n", err)
+		slog.WarnContext(ctx, "failed to create resume parse task", "resume_id", resume.ID, "error", err)
 	}
 
 	s.repo.CacheDelByPrefix(ctx, "dashboard:funnel:")
@@ -150,7 +151,7 @@ func (s *CandidateService) DeleteResume(ctx context.Context, req *pb.DeleteResum
 	}
 
 	if err := ossClient.DeleteFile(ctx, s.cfg, resume.OssKey); err != nil {
-		fmt.Printf("failed to delete OSS file %s: %v\n", resume.OssKey, err)
+		slog.WarnContext(ctx, "failed to delete resume from OSS", "resume_id", resume.ID, "error", err)
 	}
 
 	if err := s.repo.DeleteResume(req.CandidateId); err != nil {
@@ -205,7 +206,7 @@ func (s *CandidateService) ApplyJob(ctx context.Context, req *pb.ApplyJobRequest
 		MaxRetries: 3,
 	}
 	if err := s.repo.CreateAndQueueTask(ctx, matchTask); err != nil {
-		fmt.Printf("failed to create ai match task: %v\n", err)
+		slog.WarnContext(ctx, "failed to create AI match task", "application_id", app.ID, "error", err)
 	}
 
 	s.repo.CacheDelByPrefix(ctx, fmt.Sprintf("dashboard:overview:%d", job.HrID))

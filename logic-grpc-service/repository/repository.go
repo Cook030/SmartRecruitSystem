@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"log/slog"
 	"time"
 
 	rds "logic-grpc-service/redis"
@@ -33,7 +33,7 @@ func (r *Repository) CacheGet(ctx context.Context, key string, dest interface{},
 			return nil
 		}
 		if err != redis.Nil {
-			fmt.Printf("cache read error for key %s: %v\n", key, err)
+			slog.WarnContext(ctx, "cache read failed", "error", err)
 		}
 	}
 
@@ -44,7 +44,7 @@ func (r *Repository) CacheGet(ctx context.Context, key string, dest interface{},
 
 	if r.Redis.Available() {
 		if setErr := r.Redis.Set(ctx, key, data, ttl); setErr != nil {
-			fmt.Printf("cache write error for key %s: %v\n", key, setErr)
+			slog.WarnContext(ctx, "cache write failed", "error", setErr)
 		}
 	}
 
@@ -55,7 +55,7 @@ func (r *Repository) CacheGet(ctx context.Context, key string, dest interface{},
 func (r *Repository) CacheDel(ctx context.Context, keys ...string) {
 	if r.Redis.Available() {
 		if err := r.Redis.Del(ctx, keys...); err != nil {
-			fmt.Printf("cache delete error: %v\n", err)
+			slog.WarnContext(ctx, "cache delete failed", "error", err)
 		}
 	}
 }
@@ -63,7 +63,7 @@ func (r *Repository) CacheDel(ctx context.Context, keys ...string) {
 func (r *Repository) CacheDelByPrefix(ctx context.Context, prefix string) {
 	if r.Redis.Available() {
 		if err := r.Redis.DelByPrefix(ctx, prefix); err != nil {
-			fmt.Printf("cache delete by prefix error: %v\n", err)
+			slog.WarnContext(ctx, "cache delete by prefix failed", "error", err)
 		}
 	}
 }

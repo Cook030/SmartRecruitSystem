@@ -205,7 +205,7 @@ SmartRecruitSystem/
 
 Web 和 Logic 使用 OpenTelemetry 采集指标与链路，Prometheus 抓取独立管理端口，链路通过 OTLP/gRPC 发送至 Collector → Jaeger。Grafana 自动配置数据源和 Recruitment Observability 面板。未设置 OTLP 地址时，只提供指标和本地 Trace ID，不进行链路导出。
 
-已有数据库升级前，停止 Logic 写入并执行一次 `logic-grpc-service/sql/migrations/20261022_observability.sql`；首次安装使用最新 `init.sql`，无需重复执行迁移。新增任务追踪字段只存 W3C `traceparent` / `tracestate`，不改变 HTTP/gRPC 协议，也不保存对话或简历正文。任务创建时保存上下文，Redis 消费和 MySQL 轮询都从任务记录恢复。
+已有数据库升级前，停止 Logic 写入，依次执行尚未应用的迁移：`20261020_chat_conversations.sql` → `20261021_chat_context.sql` → `20261022_observability.sql`（均在 `logic-grpc-service/sql/migrations/`）。服务和容器入口不会自动迁移，已有 MySQL 数据卷也不会重跑 `init.sql`；漏掉可观测性迁移会因缺少任务追踪列导致任务创建失败。首次安装使用最新 `init.sql`，无需重复执行迁移。新增任务追踪字段只存 W3C `traceparent` / `tracestate`，不改变 HTTP/gRPC 协议，也不保存对话或简历正文。任务创建时保存上下文，Redis 消费和 MySQL 轮询都从任务记录恢复。
 
 填写 `.env` 中原有业务配置及 `GRAFANA_ADMIN_PASSWORD`，启动完整 Docker 栈：
 
@@ -218,7 +218,7 @@ docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d -
 - Jaeger：<http://localhost:16686>，服务名 `recruitment-web` / `recruitment-logic`。
 - 指标：Web <http://localhost:9464/metrics>，Logic <http://localhost:9465/metrics>。
 
-管理界面和指标端口默认只映射到本机。容器内的 OTLP 地址和指标监听地址由 Compose 覆盖；本地运行 Go 服务时，指标默认绑定 `127.0.0.1:9464` / `127.0.0.1:9465`，在进程环境或 `.env` 设置 `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317` 可接本地 Collector。若监控的是宿主机进程，需要将 Prometheus Targets 改为 `host.docker.internal:9464/9465`，并将 Go 管理端口绑定到 Docker 可访问的地址。示例全量采样，生产可降低 `OTEL_TRACES_SAMPLER_ARG`；采样只影响链路，不影响指标。
+管理界面和指标端口默认只映射到本机。容器内的 OTLP 地址和指标监听地址由 Compose 覆盖；本地运行 Go 服务时，指标默认绑定 `127.0.0.1:9464` / `127.0.0.1:9465`，在进程环境或 `.env` 设置 `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317` 可接本地 Collector。若管理端口监听失败，服务记录告警并继续运行，本实例不提供指标端点，链路导出仍可工作。若监控的是宿主机进程，需要将 Prometheus Targets 改为 `host.docker.internal:9464/9465`，并将 Go 管理端口绑定到 Docker 可访问的地址。示例采用 `OTEL_TRACES_SAMPLER=parentbased_traceidratio`、`OTEL_TRACES_SAMPLER_ARG=1.0`，生产可将比例降到如 `0.1`，该比例仅用于根 Span，子 Span 跟随父级采样决定。还支持 `always_on`、`always_off`、`traceidratio`、`parentbased_always_on`、`parentbased_always_off`；未设置采样器默认 `parentbased_always_on`，无效采样器或比例记录告警并回退至默认值。采样只影响链路，不影响指标，修改后需要重启 Go 服务。
 
 | 指标 | 维度与含义 |
 |---|---|
@@ -226,8 +226,8 @@ docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d -
 | `recruitment_operations_inflight` | 各操作当前执行数，HTTP 带路由模板和方法。 |
 | `recruitment_task_active` / `recruitment_task_oldest_age_seconds` | MySQL 中 pending/retrying/running 的数量和最老创建时间距今秒数。后台每 15 秒刷新，采集回调不查询数据库。 |
 | `recruitment_task_stalled` | running 且开始执行超过 5 分钟的任务数。 |
-| `recruitment_task_snapshot_up` / `recruitment_task_snapshot_timestamp_seconds` | 数据库快照采集是否成功、最近成功时间；失败时不继续报告旧积压值。 |
-| `recruitment_task_redis_queue_length` / `recruitment_task_redis_up` | Redis 队列长度及最近一次探测结果，不能替代 MySQL 积压。 |
+| `recruitment_task_snapshot_up` / `recruitment_task_snapshot_timestamp_seconds` | 数据库快照采集是否成功、最近成功时间；首轮采集完成后才报告，失败时不继续报告旧积压值。 |
+| `recruitment_task_redis_queue_length` / `recruitment_task_redis_up` / `recruitment_task_redis_enabled` | Redis 队列长度、最近一次探测结果及本进程是否启用 Redis。Redis 初始化不可用时沿用无缓存/MySQL 轮询模式，enabled=0 不触发 Redis 告警；已启用后探测失败仍告警。不能替代 MySQL 积压。 |
 | `recruitment_task_latency_seconds` | `phase=first_start` 为首次开始距离创建的等待时间，`end_to_end` 为终态落库距离创建的总时间。 |
 | `recruitment_ai_tokens_total` | provider 实际 usage，`kind=input/output/total`；缺失 usage 单独计事件，不把预算预留当实际消耗。汇总费用时只选 input/output 并乘以对应模型价格，避免与 total 重复相加。 |
 | `recruitment_ai_request_model_attempts` / `recruitment_agent_tool_calls` | 每次 AI 请求的模型尝试次数（包含压缩）与每次 Agent 运行的工具调用次数，均为 Histogram。 |

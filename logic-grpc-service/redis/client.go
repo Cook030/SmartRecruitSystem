@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"logic-grpc-service/config"
@@ -31,11 +31,12 @@ func NewClient(cfg config.RedisConfig) *Client {
 	defer cancel()
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Printf("WARNING: Redis connection failed: %v, falling back to no-cache mode", err)
+		slog.WarnContext(ctx, "Redis connection failed; using MySQL polling without cache", "error", err)
+		_ = rdb.Close()
 		return &Client{rdb: nil}
 	}
 
-	log.Println("Redis connected")
+	slog.InfoContext(ctx, "Redis connected")
 	return &Client{rdb: rdb}
 }
 

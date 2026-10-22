@@ -40,7 +40,7 @@ groups:
         annotations:
           summary: "Task database snapshot is failing or stale"
       - alert: RecruitmentRedisUnavailable
-        expr: recruitment_task_redis_up == 0
+        expr: recruitment_task_redis_up == 0 and recruitment_task_redis_enabled == 1
         for: 1m
         labels:
           severity: warning

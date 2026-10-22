@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 	"sync"
@@ -205,7 +204,7 @@ func (s *TaskService) DeleteResumeParseResult(ctx context.Context, req *pb.Delet
 }
 
 func (s *TaskService) StartWorker() {
-	log.Println("Task worker started")
+	slog.InfoContext(s.workerCtx, "Task worker started")
 	if s.repo.Redis.Available() {
 		s.workers.Add(1)
 		go s.redisWorker()
@@ -551,7 +550,7 @@ func (s *TaskService) processNotification(ctx context.Context, task *model.Async
 		return err
 	}
 
-	log.Printf("Notification sent to %s(%d): [%s] %s", params.UserRole, params.UserID, params.Title, params.Content)
+	slog.InfoContext(ctx, "Notification sent", "user_role", params.UserRole, "user_id", params.UserID, "channel", params.Channel)
 	task.Result = fmt.Sprintf(`{"user_id":%d,"channel":"%s","sent":true}`, params.UserID, params.Channel)
 	return nil
 }

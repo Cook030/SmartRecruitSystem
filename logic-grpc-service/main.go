@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -26,8 +26,10 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	if err := run(); err != nil {
-		log.Fatal(err)
+		slog.Error("service stopped", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -52,7 +54,7 @@ func run() error {
 		cleanup, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := shutdown(cleanup); err != nil {
-			log.Printf("telemetry shutdown: %v", err)
+			slog.Warn("telemetry shutdown failed", "error", err)
 		}
 	}()
 
@@ -62,7 +64,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("connect mysql: %w", err)
 	}
-	log.Println("MySQL connected")
+	slog.Info("MySQL connected")
 	sqlDB, err := db.DB()
 	if err != nil {
 		return err
@@ -115,7 +117,7 @@ func run() error {
 			grpcServer.Stop()
 		}
 	}()
-	log.Printf("Logic gRPC service listening on :%d", cfg.GRPC.Port)
+	slog.Info("Logic gRPC service listening", "port", cfg.GRPC.Port)
 	if err := grpcServer.Serve(lis); err != nil {
 		if !errors.Is(err, grpc.ErrServerStopped) {
 			return err
