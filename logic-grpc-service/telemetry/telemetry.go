@@ -5,9 +5,11 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -25,6 +27,7 @@ import (
 )
 
 func Init(ctx context.Context, service, addr string) (func(context.Context) error, error) {
+	slog.SetDefault(slog.New(traceHandler{slog.NewJSONHandler(os.Stdout, nil)}))
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	exporter, err := promexport.New(promexport.WithRegisterer(registry))
@@ -39,7 +42,7 @@ func Init(ctx context.Context, service, addr string) (func(context.Context) erro
 		sdkmetric.WithView(sdkmetric.NewView(sdkmetric.Instrument{Name: "recruitment.operation.duration"}, sdkmetric.Stream{
 			Aggregation: sdkmetric.AggregationExplicitBucketHistogram{Boundaries: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60, 90, 180, 300}},
 		})))
-	options := []sdktrace.TracerProviderOption{sdktrace.WithResource(res)}
+	options := []sdktrace.TracerProviderOption{sdktrace.WithResource(res), sdktrace.WithSampler(traceSampler())}
 	// With no collector configured, metrics still work without background export errors.
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" || os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") != "" {
 		exp, err := otlptracegrpc.New(ctx)
@@ -52,22 +55,21 @@ func Init(ctx context.Context, service, addr string) (func(context.Context) erro
 	tp := sdktrace.NewTracerProvider(options...)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		_ = mp.Shutdown(ctx)
-		_ = tp.Shutdown(ctx)
-		return nil, err
+		slog.Warn("metrics listener unavailable", "address", addr, "error", err)
 	}
 	otel.SetMeterProvider(mp)
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
-	slog.SetDefault(slog.New(traceHandler{slog.NewJSONHandler(os.Stdout, nil)}))
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{EnableOpenMetrics: true}))
 	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	go func() {
-		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("metrics server failed", "error", err)
-		}
-	}()
+	if listener != nil {
+		go func() {
+			if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("metrics server failed", "error", err)
+			}
+		}()
+	}
 	return func(ctx context.Context) error {
 		return errors.Join(server.Shutdown(ctx), mp.Shutdown(ctx), tp.Shutdown(ctx))
 	}, nil
@@ -86,3 +88,33 @@ func (h traceHandler) WithAttrs(a []slog.Attr) slog.Handler {
 	return traceHandler{h.Handler.WithAttrs(a)}
 }
 func (h traceHandler) WithGroup(g string) slog.Handler { return traceHandler{h.Handler.WithGroup(g)} }
+
+// The Go SDK does not read sampler environment variables itself.
+func traceSampler() sdktrace.Sampler {
+	name := os.Getenv("OTEL_TRACES_SAMPLER")
+	ratio := 1.0
+	if name == "traceidratio" || name == "parentbased_traceidratio" {
+		if arg := os.Getenv("OTEL_TRACES_SAMPLER_ARG"); arg != "" {
+			value, err := strconv.ParseFloat(arg, 64)
+			if err != nil || math.IsNaN(value) || value < 0 || value > 1 {
+				slog.Warn("invalid OTEL_TRACES_SAMPLER_ARG; using 1.0")
+			} else {
+				ratio = value
+			}
+		}
+	}
+	switch name {
+	case "always_on":
+		return sdktrace.AlwaysSample()
+	case "always_off":
+		return sdktrace.NeverSample()
+	case "traceidratio":
+		return sdktrace.TraceIDRatioBased(ratio)
+	case "parentbased_always_off":
+		return sdktrace.ParentBased(sdktrace.NeverSample())
+	case "", "parentbased_always_on", "parentbased_traceidratio":
+	default:
+		slog.Warn("unknown OTEL_TRACES_SAMPLER; using parentbased_always_on", "sampler", name)
+	}
+	return sdktrace.ParentBased(sdktrace.TraceIDRatioBased(ratio))
+}

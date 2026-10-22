@@ -56,9 +56,12 @@ func (b *modelCircuit) finish(generation uint64, err error, now time.Time) {
 	if b.probing {
 		b.probing = false
 		b.generation++
-		if err != nil {
-			// Only a successful probe restores traffic, even if its caller cancels.
+		if modelProviderFailure(err) {
 			b.until = now.Add(modelCircuitCooldown)
+			return
+		}
+		if errors.Is(err, context.Canceled) {
+			// Cancellation provides no evidence of recovery; allow another probe now.
 			return
 		}
 		b.until = time.Time{}
@@ -132,6 +135,7 @@ func (m *circuitModel) Generate(ctx context.Context, messages []*schema.Message,
 		return nil, err
 	}
 	// Background analysis otherwise has no request deadline.
+	callerCtx := ctx
 	ctx, cancel := context.WithTimeout(ctx, ChatTimeout)
 	defer cancel()
 	ctx, end := telemetry.Start(ctx, "ai.model", attribute.String("model", m.name))
@@ -145,7 +149,12 @@ func (m *circuitModel) Generate(ctx context.Context, messages []*schema.Message,
 	} else {
 		telemetry.Event(ctx, "ai.usage_missing", attribute.String("model", m.name))
 	}
-	m.circuit.finish(generation, err, time.Now())
+	circuitErr := err
+	if callerCtx.Err() != nil {
+		// A caller's cancellation/deadline says nothing about provider health.
+		circuitErr = context.Canceled
+	}
+	m.circuit.finish(generation, circuitErr, time.Now())
 	return response, err
 }
 
