@@ -94,6 +94,9 @@ func (s *ChatService) SendMessage(ctx context.Context, req *pb.SendMessageReques
 	}
 	result, err := ai.Chat(ctx, s.cfg, s.repo, req.HrId, input, req.Content)
 	if err != nil {
+		if errors.Is(err, ai.ErrModelCircuitOpen) {
+			return nil, status.Error(codes.Unavailable, "AI 服务暂时不可用，请稍后重试")
+		}
 		if errors.Is(err, ai.ErrTokenBudgetExceeded) {
 			return nil, status.Error(codes.ResourceExhausted, "本次请求的 token 额度不足，已停止模型调用")
 		}

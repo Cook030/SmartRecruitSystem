@@ -54,7 +54,7 @@ func Chat(ctx context.Context, cfg *config.Config, reader recruitment.Reader, hr
 	if err != nil {
 		return ChatResult{}, fmt.Errorf("create chat model: %w", err)
 	}
-	limitedModel := withTokenBudget(chatModel, cfg.AI.TokenBudget)
+	limitedModel := withTokenBudget(withModelCircuit(chatModel), cfg.AI.TokenBudget)
 	prompt := recruitmentPrompt + "\n当前日期：" + time.Now().In(recruitment.Shanghai).Format("2006-01-02")
 	// Reserve a full handoff and message/envelope space before selecting history.
 	prepared, compactErr := chatcontext.Prepare(ctx, input, 24*1024-len(prompt)-len(userMessage)-chatcontext.MaxHandoffBytes-2048,
